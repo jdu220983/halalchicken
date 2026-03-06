@@ -6,7 +6,6 @@ import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { useState } from "react"
 
 interface ProductCardProps {
@@ -18,14 +17,11 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart()
   const { push: toast } = useToast()
   const [isAdding, setIsAdding] = useState(false)
-  const [quantity, setQuantity] = useState("1.00")
 
   const handleAddToCart = async () => {
     setIsAdding(true)
     try {
-      const parsed = parseFloat(quantity)
-      const normalized = Number.isFinite(parsed) && parsed > 0 ? parsed : 1
-      await addToCart(product, normalized)
+      await addToCart(product, 1)
       toast({ message: t("addedToCart", language) || "Added to cart", type: "success" })
     } catch (error) {
       console.error("Failed to add to cart:", error)
@@ -74,20 +70,7 @@ export function ProductCard({ product }: ProductCardProps) {
       </CardContent>
 
       {isCustomer && (
-        <CardFooter className="p-4 pt-0 flex flex-col gap-2">
-          <div className="space-y-1 w-full">
-            <label className="text-xs text-muted-foreground">
-              {t("quantity", language)} ({t("kg", language)})
-            </label>
-            <Input
-              type="number"
-              min="0.1"
-              step="0.1"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              disabled={!product.status}
-            />
-          </div>
+        <CardFooter className="p-4 pt-0">
           <Button
             className="w-full"
             onClick={handleAddToCart}

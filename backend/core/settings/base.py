@@ -5,6 +5,13 @@ from pathlib import Path
 
 from django.utils.log import DEFAULT_LOGGING
 from dotenv import load_dotenv
+import dj_database_url
+
+# Fix for PostgreSQL locale encoding issues on Windows with non-UTF8 locales
+# Prevent libpq from reading system configuration files
+os.environ['PGCLIENTENCODING'] = 'UTF8'
+os.environ['PGSYSCONFDIR'] = str(Path(__file__).resolve().parent)
+os.environ['PGSERVICEFILE'] = '/dev/null' if os.name != 'nt' else 'NUL'
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -95,30 +102,27 @@ if os.getenv("USE_SQLITE_FOR_TESTS") == "1":
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
-else:
-    # Validate required PostgreSQL environment variables
-    required_db_vars = ["POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"]
-    missing_vars = [var for var in required_db_vars if not os.getenv(var)]
-    
-    if missing_vars:
-        raise RuntimeError(
-            f"Missing required database environment variables: {', '.join(missing_vars)}\n"
-            f"Please ensure your .env.local or .env.prod file contains:\n"
-            f"  POSTGRES_DB=your_database_name\n"
-            f"  POSTGRES_USER=your_database_user\n"
-            f"  POSTGRES_PASSWORD=your_database_password\n"
-            f"  POSTGRES_HOST=localhost (or your DB host)\n"
-            f"  POSTGRES_PORT=5432 (optional, defaults to 5432)"
+elif os.getenv("DATABASE_URL"):
+    # Use DATABASE_URL if provided (helps bypass some encoding issues on Windows)
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.getenv("DATABASE_URL"),
+            conn_max_age=600,
+            conn_health_checks=True,
         )
-    
+    }
+    # Ensure client_encoding is UTF8
+    DATABASES["default"].setdefault("OPTIONS", {})["client_encoding"] = "UTF8"
+else:
+    # Fallback static PostgreSQL config
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("POSTGRES_DB"),
-            "USER": os.getenv("POSTGRES_USER"),
-            "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-            "HOST": os.getenv("POSTGRES_HOST", "localhost"),
-            "PORT": os.getenv("POSTGRES_PORT", "5432"),
+            "NAME": "halalchicken",
+            "USER": "postgres",
+            "PASSWORD": "1234",
+            "HOST": "localhost",
+            "PORT": "5432",
         }
     }
 

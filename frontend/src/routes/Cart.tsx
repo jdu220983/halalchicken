@@ -5,8 +5,9 @@ import { useToast } from '@/lib/toast'
 import { t } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Trash2, ShoppingBag, Plus, Minus } from 'lucide-react'
+import { Trash2, ShoppingBag } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
 import { createOrder, telegramTemplate } from '@/lib/api'
 
 export function Cart() {
@@ -15,6 +16,7 @@ export function Cart() {
   const { push: toast } = useToast()
   const navigate = useNavigate()
   const [contactInfo, setContactInfo] = useState<{ text: string; orderNumber: string } | null>(null)
+  const [quantityInputs, setQuantityInputs] = useState<Record<number, string>>({})
 
   useEffect(() => {
     // Redirect admins away from cart page
@@ -59,6 +61,58 @@ export function Cart() {
   }
 
   const formatWeight = (value: number) => Number(value || 0).toFixed(2)
+
+  useEffect(() => {
+    if (!cart) {
+      setQuantityInputs({})
+      return
+    }
+
+    setQuantityInputs((prev) => {
+      const next: Record<number, string> = {}
+      cart.items.forEach((item) => {
+        const productId = item.product.id
+        next[productId] = prev[productId] ?? formatWeight(item.quantity)
+      })
+      return next
+    })
+  }, [cart])
+
+  const handleQuantityInput = (productId: number, value: string) => {
+    setQuantityInputs((prev) => ({ ...prev, [productId]: value }))
+
+    const normalized = value.replace(',', '.')
+    const isNumericInput = /^\d*(\.\d*)?$/.test(normalized)
+
+    if (!isNumericInput || normalized === '') {
+      return
+    }
+
+    const parsed = Number(normalized)
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return
+    }
+
+    updateQuantity(productId, parsed)
+  }
+
+  const handleQuantityBlur = (productId: number, currentQuantity: number) => {
+    const currentInput = quantityInputs[productId] ?? ''
+    const normalized = currentInput.replace(',', '.')
+
+    if (normalized === '') {
+      setQuantityInputs((prev) => ({ ...prev, [productId]: formatWeight(currentQuantity) }))
+      return
+    }
+
+    const parsed = Number(normalized)
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setQuantityInputs((prev) => ({ ...prev, [productId]: formatWeight(currentQuantity) }))
+      return
+    }
+
+    setQuantityInputs((prev) => ({ ...prev, [productId]: parsed.toFixed(2) }))
+  }
 
   if (isLoading) {
     return (
@@ -131,7 +185,7 @@ export function Cart() {
                     )}
                   </div>
 
-                  {/* Quantity Controls */}
+                  {/* Quantity Input */}
                   <div className="flex flex-col items-end gap-3">
                     <Button
                       variant="ghost"
@@ -142,37 +196,26 @@ export function Cart() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
 
-                    <div className="flex items-center gap-2 border rounded-lg">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() =>
-                          updateQuantity(
-                            item.product.id,
-                            Number(Math.max(0.1, item.quantity - 0.1).toFixed(2))
-                          )
-                        }
-                        disabled={item.quantity <= 0.1}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-16 text-center font-medium">
-                        {formatWeight(item.quantity)} {t('kg', language)}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() =>
-                          updateQuantity(
-                            item.product.id,
-                            Number((item.quantity + 0.1).toFixed(2))
-                          )
-                        }
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
+                    <div className="flex items-center gap-2 border rounded-lg px-2 py-1">
+                      <Input
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        inputMode="decimal"
+                        pattern="[0-9]*[.]?[0-9]*"
+                        value={quantityInputs[item.product.id] ?? formatWeight(item.quantity)}
+                        onChange={(e) => handleQuantityInput(item.product.id, e.target.value)}
+                        onBlur={() => handleQuantityBlur(item.product.id, item.quantity)}
+                        onKeyDown={(e) => {
+                          if (['e', 'E', '+', '-'].includes(e.key)) {
+                            e.preventDefault()
+                          }
+                        }}
+                        onWheel={(e) => e.currentTarget.blur()}
+                        className="cart-quantity-input w-24 text-center"
+                        aria-label={`${t('quantity', language)} (${t('kg', language)})`}
+                      />
+                      <span className="text-sm text-muted-foreground">{t('kg', language)}</span>
                     </div>
                   </div>
                 </div>
