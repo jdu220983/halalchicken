@@ -167,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   // Session timeout hook - only active when user is logged in
-  const { isWarning, stayActive } = useIdleTimeout({
+  const { stayActive } = useIdleTimeout({
     timeout: 30 * 60 * 1000, // 30 minutes
     warningTime: 2 * 60 * 1000, // 2 minutes warning
     onIdle: () => {

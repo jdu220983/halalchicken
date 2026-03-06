@@ -1,5 +1,6 @@
-from django.db import migrations, models
 import uuid
+
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
@@ -12,18 +13,31 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="AsyncJob",
             fields=[
-                ("id", models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, serialize=False)),
+                (
+                    "id",
+                    models.UUIDField(
+                        primary_key=True, default=uuid.uuid4, editable=False, serialize=False
+                    ),
+                ),
                 (
                     "type",
                     models.CharField(
-                        choices=[("EXPORT_ORDERS", "EXPORT_ORDERS"), ("IMPORT_PRODUCTS", "IMPORT_PRODUCTS")],
+                        choices=[
+                            ("EXPORT_ORDERS", "EXPORT_ORDERS"),
+                            ("IMPORT_PRODUCTS", "IMPORT_PRODUCTS"),
+                        ],
                         max_length=64,
                     ),
                 ),
                 (
                     "status",
                     models.CharField(
-                        choices=[("PENDING", "PENDING"), ("RUNNING", "RUNNING"), ("SUCCESS", "SUCCESS"), ("FAILED", "FAILED")],
+                        choices=[
+                            ("PENDING", "PENDING"),
+                            ("RUNNING", "RUNNING"),
+                            ("SUCCESS", "SUCCESS"),
+                            ("FAILED", "FAILED"),
+                        ],
                         default="PENDING",
                         max_length=16,
                     ),

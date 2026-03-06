@@ -61,7 +61,7 @@ class SentryUserMiddleware(MiddlewareMixin):
             import sentry_sdk  # type: ignore
         except Exception:
             return None
-        user_id = getattr(getattr(request, 'user', None), 'id', None)
+        user_id = getattr(getattr(request, "user", None), "id", None)
         if user_id:
             try:
                 sentry_sdk.set_user({"id": str(user_id)})

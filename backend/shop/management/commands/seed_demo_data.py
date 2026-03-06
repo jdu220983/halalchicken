@@ -1,6 +1,7 @@
-from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from shop.models import Category, Supplier, Product
+from django.core.management.base import BaseCommand
+
+from shop.models import Category, Product, Supplier
 
 
 class Command(BaseCommand):

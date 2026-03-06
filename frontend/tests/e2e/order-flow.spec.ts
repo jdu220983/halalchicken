@@ -22,7 +22,7 @@ test('register, add to cart, place order, success whatsapp CTA', async ({
     })
   ).json()
   // Inject token into app store
-  await page.addInitScript((t) => {
+  await page.addInitScript(() => {
     // @ts-ignore
     window.__setToken = (val) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

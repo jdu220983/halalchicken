@@ -52,16 +52,17 @@ print("\n3. Settings Import Test:")
 try:
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings.dev")
     import django
+
     django.setup()
     from django.conf import settings
-    
-    print(f"   ✓ Settings loaded successfully")
+
+    print("   ✓ Settings loaded successfully")
     print(f"   DEBUG mode: {settings.DEBUG}")
     print(f"   Database engine: {settings.DATABASES['default']['ENGINE']}")
     print(f"   Database name: {settings.DATABASES['default']['NAME']}")
     print(f"   Database host: {settings.DATABASES['default']['HOST']}")
 except Exception as e:
-    print(f"   ✗ Failed to load settings:")
+    print("   ✗ Failed to load settings:")
     print(f"     {type(e).__name__}: {e}")
 
 print("\n" + "=" * 60)

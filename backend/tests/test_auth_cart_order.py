@@ -1,4 +1,5 @@
 import re
+
 import pytest
 
 
@@ -45,11 +46,13 @@ def test_register_login_me_update_cart_order_whatsapp(client):
     assert up.json()["address"] == "Tashkent"
 
     # Seed catalog
-    from shop.models import Category, Supplier, Product
+    from shop.models import Category, Product, Supplier
 
     cat = Category.objects.create(name_uz="Oyog'", name_ru="Нога")
     sup = Supplier.objects.create(name="Local Farm")
-    prod = Product.objects.create(name_uz="Tovuq oyog'i", name_ru="Куриная ножка", category=cat, supplier=sup)
+    prod = Product.objects.create(
+        name_uz="Tovuq oyog'i", name_ru="Куриная ножка", category=cat, supplier=sup
+    )
 
     # Add to cart
     add = client.post(
@@ -135,7 +138,8 @@ def test_registration_field_requirements(client):
 @pytest.mark.django_db
 def test_reorder_to_user_cart(client):
     from django.contrib.auth import get_user_model
-    from shop.models import Category, Supplier, Product, Order, OrderItem
+
+    from shop.models import Category, Order, OrderItem, Product, Supplier
 
     U = get_user_model()
     user = U.objects.create_user(username="r1", password="Pass123!")
@@ -162,7 +166,8 @@ def test_reorder_to_user_cart(client):
 @pytest.mark.django_db
 def test_reorder_unauthorized_for_anonymous(client):
     from django.contrib.auth import get_user_model
-    from shop.models import Category, Supplier, Product, Order, OrderItem
+
+    from shop.models import Category, Order, OrderItem, Product, Supplier
 
     U = get_user_model()
     user = U.objects.create_user(username="r2", password="Pass123!")
@@ -180,11 +185,12 @@ def test_reorder_unauthorized_for_anonymous(client):
 @pytest.mark.django_db
 def test_reorder_forbidden_other_user(client):
     from django.contrib.auth import get_user_model
-    from shop.models import Category, Supplier, Product, Order, OrderItem
+
+    from shop.models import Category, Order, OrderItem, Product, Supplier
 
     U = get_user_model()
     owner = U.objects.create_user(username="owner", password="Pass123!")
-    other = U.objects.create_user(username="intruder", password="Pass123!")
+    U.objects.create_user(username="intruder", password="Pass123!")
     tok = client.post(
         "/api/auth/login/",
         {"username": "intruder", "password": "Pass123!"},
@@ -206,7 +212,8 @@ def test_reorder_forbidden_other_user(client):
 @pytest.mark.django_db
 def test_reorder_accumulates_quantities(client):
     from django.contrib.auth import get_user_model
-    from shop.models import Category, Supplier, Product, Order, OrderItem
+
+    from shop.models import Category, Order, OrderItem, Product, Supplier
 
     U = get_user_model()
     user = U.objects.create_user(username="r3", password="Pass123!")

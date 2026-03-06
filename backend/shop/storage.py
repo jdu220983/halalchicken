@@ -96,7 +96,9 @@ def get_storage() -> StorageBackend:
         bucket = os.getenv("AWS_S3_BUCKET") or os.getenv("AWS_STORAGE_BUCKET_NAME")
         region = os.getenv("AWS_S3_REGION") or os.getenv("AWS_DEFAULT_REGION")
         if not bucket or not region:
-            raise RuntimeError("Missing AWS_S3_BUCKET/AWS_STORAGE_BUCKET_NAME or AWS_S3_REGION/AWS_DEFAULT_REGION")
+            raise RuntimeError(
+                "Missing AWS_S3_BUCKET/AWS_STORAGE_BUCKET_NAME or AWS_S3_REGION/AWS_DEFAULT_REGION"
+            )
         base_path = os.getenv("S3_BASE_PATH", "uploads")
         return S3Storage(bucket=bucket, region=region, base_path=base_path)
     if backend == "CLOUDINARY":
@@ -104,4 +106,6 @@ def get_storage() -> StorageBackend:
         folder = os.getenv("CLOUDINARY_FOLDER", "halalchicken")
         return CloudinaryStorage(folder=folder)
     # Fallback to local
-    return LocalStorage(base_dir=Path(settings.MEDIA_ROOT) / "files", base_url=settings.MEDIA_URL.rstrip("/"))
+    return LocalStorage(
+        base_dir=Path(settings.MEDIA_ROOT) / "files", base_url=settings.MEDIA_URL.rstrip("/")
+    )

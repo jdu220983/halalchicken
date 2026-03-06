@@ -3,15 +3,15 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+import dj_database_url
 from django.utils.log import DEFAULT_LOGGING
 from dotenv import load_dotenv
-import dj_database_url
 
 # Fix for PostgreSQL locale encoding issues on Windows with non-UTF8 locales
 # Prevent libpq from reading system configuration files
-os.environ['PGCLIENTENCODING'] = 'UTF8'
-os.environ['PGSYSCONFDIR'] = str(Path(__file__).resolve().parent)
-os.environ['PGSERVICEFILE'] = '/dev/null' if os.name != 'nt' else 'NUL'
+os.environ["PGCLIENTENCODING"] = "UTF8"
+os.environ["PGSYSCONFDIR"] = str(Path(__file__).resolve().parent)
+os.environ["PGSERVICEFILE"] = "/dev/null" if os.name != "nt" else "NUL"
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -146,9 +146,6 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "shop.User"
 
-# CORS
-from django.conf import settings as _settings  # type: ignore
-
 # CORS: wide open in dev, controlled via env in prod
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
@@ -163,16 +160,16 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Allow custom headers (x-session-id for anonymous cart)
 CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    'x-session-id',  # Custom header for anonymous cart sessions
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "x-session-id",  # Custom header for anonymous cart sessions
 ]
 
 # DRF

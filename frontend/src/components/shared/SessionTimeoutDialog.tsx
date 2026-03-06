@@ -8,7 +8,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { t } from '@/lib/i18n'
 
 interface SessionTimeoutDialogProps {
   open: boolean

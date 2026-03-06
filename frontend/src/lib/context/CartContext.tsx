@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react"
-import { Cart, CartItem, Product } from "../types"
+import { Cart, Product } from "../types"
 import { useAuth } from "./AuthContext"
 
 const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || ""

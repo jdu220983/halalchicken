@@ -7,7 +7,7 @@ from celery import shared_task
 from django.utils import timezone
 from openpyxl import Workbook, load_workbook
 
-from .models import AsyncJob, Order, Product, Category, Supplier
+from .models import AsyncJob, Category, Order, Product, Supplier
 from .storage import get_storage
 
 
@@ -41,7 +41,12 @@ def export_orders_task(job_id: str, filters: dict[str, Any] | None = None) -> No
     job = AsyncJob.objects.get(pk=job_id)
     job.mark_running()
     try:
-        qs = Order.objects.select_related("user").prefetch_related("items__product").all().order_by("-created_at")
+        qs = (
+            Order.objects.select_related("user")
+            .prefetch_related("items__product")
+            .all()
+            .order_by("-created_at")
+        )
         filters = filters or {}
         if v := filters.get("status"):
             qs = qs.filter(status=v)
@@ -87,7 +92,7 @@ def export_orders_task(job_id: str, filters: dict[str, Any] | None = None) -> No
         url = storage.save_bytes(
             data,
             f"orders_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
         job.mark_success(url)
     except Exception as e:  # pragma: no cover - simplify
@@ -105,7 +110,15 @@ def import_products_task(job_id: str, file_bytes: bytes) -> None:
             wb = load_workbook(io.BytesIO(file_bytes))
             ws = wb.active
             # Strict header
-            expected = ["name_uz", "name_ru", "category", "supplier", "image_url", "description", "status"]
+            expected = [
+                "name_uz",
+                "name_ru",
+                "category",
+                "supplier",
+                "image_url",
+                "description",
+                "status",
+            ]
             header_cells = next(ws.iter_rows(min_row=1, max_row=1))
             header = [c.value for c in header_cells]
             if header != expected:
@@ -142,7 +155,9 @@ def import_products_task(job_id: str, file_bytes: bytes) -> None:
                     skipped += 1
                     continue
 
-                category, _c = Category.objects.get_or_create(name_uz=cat_name, defaults={"name_ru": cat_name})
+                category, _c = Category.objects.get_or_create(
+                    name_uz=cat_name, defaults={"name_ru": cat_name}
+                )
                 supplier, _s = Supplier.objects.get_or_create(name=sup_name)
 
                 obj, was_created = Product.objects.update_or_create(
@@ -175,7 +190,11 @@ def import_products_task(job_id: str, file_bytes: bytes) -> None:
         totals.append([created, updated, skipped])
         buf = io.BytesIO()
         summary_wb.save(buf)
-        url = get_storage().save_bytes(buf.getvalue(), "import_products_summary.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        url = get_storage().save_bytes(
+            buf.getvalue(),
+            "import_products_summary.xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
         job.mark_success(url)
     except Exception as e:  # pragma: no cover - simplify
         job.mark_failed(str(e))

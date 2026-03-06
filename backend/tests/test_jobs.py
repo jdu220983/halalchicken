@@ -1,10 +1,11 @@
 import io
+from unittest import mock
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework.test import APIClient
-from unittest import mock
 
 
 @pytest.mark.django_db
@@ -38,7 +39,11 @@ def test_admin_import_products_enqueues():
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    upload = SimpleUploadedFile("products.xlsx", buf.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    upload = SimpleUploadedFile(
+        "products.xlsx",
+        buf.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
     with mock.patch("shop.tasks.import_products_task.delay", lambda *a, **k: None):
         resp = client.post(url, {"file": upload}, format="multipart")
     assert resp.status_code == 202

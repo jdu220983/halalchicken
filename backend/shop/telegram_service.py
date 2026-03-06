@@ -3,9 +3,11 @@ Telegram Bot Service for sending notifications to admins.
 
 This service handles sending order notifications to admin Telegram chats.
 """
+
 import logging
 import os
-from typing import List, Optional
+from typing import List
+
 import requests
 
 logger = logging.getLogger(__name__)
@@ -85,10 +87,9 @@ class TelegramService:
             customer_name = customer.company_name
 
         # Format order items
-        items_text = "\n".join([
-            f"• {item.product.name_uz} - {item.quantity} kg"
-            for item in order.items.all()
-        ])
+        items_text = "\n".join(
+            [f"• {item.product.name_uz} - {item.quantity} kg" for item in order.items.all()]
+        )
 
         message = f"""
 🆕 <b>Yangi buyurtma</b>
@@ -135,4 +136,3 @@ class TelegramService:
 
 # Global instance
 telegram_service = TelegramService()
-

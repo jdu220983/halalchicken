@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/context'
 import { useToast } from '@/lib/toast'
@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ShoppingCart, Package, Users as UsersIcon, MoreVertical, Download, Upload, FileSpreadsheet, Send, Plus, Edit, Trash2, X, Save } from 'lucide-react'
+import { ShoppingCart, Package, Users as UsersIcon, MoreVertical, Download, Upload, FileSpreadsheet, Send, Plus, Edit, Trash2, Save } from 'lucide-react'
 import { PaginationControls } from '@/components/ui/pagination-controls'
 import type { Order, OrderStatus, User, Product, Category, Supplier } from '@/lib/types'
 import { formatDateTime } from '@/lib/utils'

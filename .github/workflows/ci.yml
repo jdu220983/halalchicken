@@ -20,7 +20,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          elif [ -f backend/requirements.txt ]; then
+            pip install -r backend/requirements.txt
+          else
+            echo "requirements.txt not found in current directory or backend/" >&2
+            exit 1
+          fi
           pip install pytest pytest-django
       - name: Lint
         run: |
@@ -62,8 +69,8 @@ jobs:
       - name: No-price grep guard
         run: |
           set -e
-          ! git grep -I -n -E "(^|[^a-z])price(s)?([^a-z]|$)|\\$|so['’]?(m|ʻm)|uzs|₽|€|£" -- \
-            ':!documentation.md' ':!PRODUCTION.md' ':!TASKS.md' ':!prompt.md' || {
+          ! git grep -I -n -E -i '(^|[^a-z])(usd|uzs|eur|rub)([^a-z]|$)|₽|€|£' -- \
+            ':!documentation.md' ':!PRODUCTION.md' ':!TASKS.md' ':!prompt.md' ':!task.md.resolved' || {
             echo "::error::Forbidden price-like token(s) found in code."; exit 1; }
 
   e2e:

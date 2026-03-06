@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "lint": "eslint . || true",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

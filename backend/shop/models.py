@@ -17,7 +17,9 @@ class User(AbstractUser):
         LEGAL = "LEGAL", "LEGAL"
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.CUSTOMER)
-    user_type = models.CharField(max_length=20, choices=UserType.choices, default=UserType.INDIVIDUAL)
+    user_type = models.CharField(
+        max_length=20, choices=UserType.choices, default=UserType.INDIVIDUAL
+    )
 
     fio = models.CharField(max_length=255, blank=True)
     phone = models.CharField(max_length=32, blank=True)
@@ -56,10 +58,14 @@ class Supplier(models.Model):
 
 
 class Product(models.Model):
-    name_uz = models.CharField(max_length=255, blank=True, default='')
-    name_ru = models.CharField(max_length=255, blank=True, default='')
-    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products", db_index=True)
-    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="products", db_index=True)
+    name_uz = models.CharField(max_length=255, blank=True, default="")
+    name_ru = models.CharField(max_length=255, blank=True, default="")
+    category = models.ForeignKey(
+        Category, on_delete=models.PROTECT, related_name="products", db_index=True
+    )
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.PROTECT, related_name="products", db_index=True
+    )
     image_url = models.URLField(blank=True)
     description = models.TextField(blank=True)
     status = models.BooleanField(default=True, db_index=True)
@@ -97,6 +103,7 @@ class SessionCart(models.Model):
     def save(self, *args, **kwargs):
         if not self.expires_at:
             from datetime import timedelta
+
             self.expires_at = timezone.now() + timedelta(days=7)
         super().save(*args, **kwargs)
 
@@ -111,6 +118,7 @@ class SessionCartItem(models.Model):
         validators=[MinValueValidator(Decimal("0.01"))],
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
     class Meta:
         unique_together = ("cart", "product")
 
@@ -123,7 +131,9 @@ class Order(models.Model):
 
     user = models.ForeignKey("User", on_delete=models.PROTECT, related_name="orders", db_index=True)
     order_number = models.CharField(max_length=20, unique=True, db_index=True)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.RECEIVED, db_index=True)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.RECEIVED, db_index=True
+    )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -194,4 +204,3 @@ class AsyncJob(models.Model):
         self.error = err[:4000]
         self.finished_at = _tz.now()
         self.save(update_fields=["status", "error", "finished_at"])
-

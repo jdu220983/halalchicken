@@ -1,11 +1,11 @@
-from decimal import Decimal
 import os
+from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import Category, Supplier, Product, Cart, CartItem, Order, OrderItem
+from .models import Cart, CartItem, Category, Order, OrderItem, Product, Supplier
 from .storage import get_storage
 
 User = get_user_model()
@@ -87,6 +87,7 @@ class UserSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(allow_blank=True, required=False, max_length=254)
     phone = serializers.CharField(required=False, allow_blank=True, max_length=32)
     inn = serializers.CharField(required=False, allow_blank=True, max_length=64)
+
     class Meta:
         model = User
         fields = (
@@ -129,8 +130,8 @@ class ProductSerializer(serializers.ModelSerializer):
         queryset=Supplier.objects.all(), write_only=True, source="supplier"
     )
     image_file = serializers.FileField(write_only=True, required=False, allow_null=True)
-    name_uz = serializers.CharField(max_length=255, required=False, allow_blank=True, default='')
-    name_ru = serializers.CharField(max_length=255, required=False, allow_blank=True, default='')
+    name_uz = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+    name_ru = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
 
     class Meta:
         model = Product
@@ -153,15 +154,17 @@ class ProductSerializer(serializers.ModelSerializer):
         if not f:
             return f
         # Validate magic bytes, not HTTP header
-        import imghdr
+        from PIL import Image, UnidentifiedImageError
 
         f.seek(0)
-        image_type = imghdr.what(f)
+        try:
+            with Image.open(f) as img:
+                image_type = (img.format or "").lower()
+        except UnidentifiedImageError:
+            image_type = None
         f.seek(0)
         if image_type not in {"jpeg", "png", "webp"}:
-            raise serializers.ValidationError(
-                "Unsupported image type. Allowed: jpg, png, webp"
-            )
+            raise serializers.ValidationError("Unsupported image type. Allowed: jpg, png, webp")
         # size check
         max_mb = float(os.getenv("MAX_IMAGE_MB", "5"))
         if f.size and f.size > max_mb * 1024 * 1024:
@@ -237,6 +240,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class AdminOrderSerializer(serializers.ModelSerializer):
     """Order serializer for admin views, includes user contact information."""
+
     items = OrderItemSerializer(many=True, read_only=True)
     user = serializers.SerializerMethodField()
 

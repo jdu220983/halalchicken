@@ -6,13 +6,22 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('shop', '0007_alter_cartitem_quantity_alter_orderitem_quantity_and_more'),
+        ("shop", "0007_alter_cartitem_quantity_alter_orderitem_quantity_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='order',
-            name='status',
-            field=models.CharField(choices=[('Received', 'Received'), ('Confirmed', 'Confirmed'), ('Shipped', 'Shipped')], db_index=True, default='Received', max_length=20),
+            model_name="order",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("Received", "Received"),
+                    ("Confirmed", "Confirmed"),
+                    ("Shipped", "Shipped"),
+                ],
+                db_index=True,
+                default="Received",
+                max_length=20,
+            ),
         ),
     ]

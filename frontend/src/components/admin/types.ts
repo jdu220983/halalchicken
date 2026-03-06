@@ -1,4 +1,4 @@
-import type { Order, User } from '@/lib/types'
+import type { Order } from '@/lib/types'
 
 export interface AdminStats {
   today_orders: number
