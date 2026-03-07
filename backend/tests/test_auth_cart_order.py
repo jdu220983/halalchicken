@@ -138,7 +138,6 @@ def test_registration_field_requirements(client):
 @pytest.mark.django_db
 def test_reorder_to_user_cart(client):
     from django.contrib.auth import get_user_model
-
     from shop.models import Category, Order, OrderItem, Product, Supplier
 
     U = get_user_model()
@@ -166,7 +165,6 @@ def test_reorder_to_user_cart(client):
 @pytest.mark.django_db
 def test_reorder_unauthorized_for_anonymous(client):
     from django.contrib.auth import get_user_model
-
     from shop.models import Category, Order, OrderItem, Product, Supplier
 
     U = get_user_model()
@@ -185,7 +183,6 @@ def test_reorder_unauthorized_for_anonymous(client):
 @pytest.mark.django_db
 def test_reorder_forbidden_other_user(client):
     from django.contrib.auth import get_user_model
-
     from shop.models import Category, Order, OrderItem, Product, Supplier
 
     U = get_user_model()
@@ -212,7 +209,6 @@ def test_reorder_forbidden_other_user(client):
 @pytest.mark.django_db
 def test_reorder_accumulates_quantities(client):
     from django.contrib.auth import get_user_model
-
     from shop.models import Category, Order, OrderItem, Product, Supplier
 
     U = get_user_model()

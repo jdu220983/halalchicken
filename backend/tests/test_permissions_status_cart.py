@@ -12,7 +12,6 @@ def test_catalog_admin_writes_enforced(client):
 def test_status_machine_transitions(client):
     # create admin and user, login as admin to transition
     from django.contrib.auth import get_user_model
-
     from shop.models import Category, Order, OrderItem, Product, Supplier
 
     U = get_user_model()
@@ -34,9 +33,17 @@ def test_status_machine_transitions(client):
 
     # legal transitions
     assert (
-        client.post(f"/api/orders/{order.id}/status/", {"status": "Confirmed"}).status_code == 200
+        client.post(
+            f"/api/orders/{order.id}/status/", {"status": "Confirmed"}
+        ).status_code
+        == 200
     )
-    assert client.post(f"/api/orders/{order.id}/status/", {"status": "Shipped"}).status_code == 200
+    assert (
+        client.post(
+            f"/api/orders/{order.id}/status/", {"status": "Shipped"}
+        ).status_code
+        == 200
+    )
     # illegal transition (cannot go backwards)
     bad = client.post(f"/api/orders/{order.id}/status/", {"status": "Received"})
     assert bad.status_code == 400
@@ -46,7 +53,6 @@ def test_status_machine_transitions(client):
 def test_session_cart_merge(client):
     # anon adds to cart, then registers/logs in; cart merges into user cart
     from django.contrib.auth import get_user_model
-
     from shop.models import Category, Product, Supplier
 
     cat = Category.objects.create(name_uz="C", name_ru="C")
@@ -84,9 +90,13 @@ def test_role_change_superadmin_only(client):
     from django.contrib.auth import get_user_model
 
     U = get_user_model()
-    customer = U.objects.create_user(username="customer1", password="Pass123!", role="CUSTOMER")
+    customer = U.objects.create_user(
+        username="customer1", password="Pass123!", role="CUSTOMER"
+    )
     U.objects.create_user(username="admin1", password="Pass123!", role="ADMIN")
-    U.objects.create_user(username="superadmin1", password="Pass123!", role="SUPERADMIN")
+    U.objects.create_user(
+        username="superadmin1", password="Pass123!", role="SUPERADMIN"
+    )
 
     # Admin cannot change roles
     tok = client.post(

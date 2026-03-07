@@ -39,12 +39,16 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="user",
             name="email",
-            field=models.EmailField(blank=True, max_length=254, verbose_name="email address"),
+            field=models.EmailField(
+                blank=True, max_length=254, verbose_name="email address"
+            ),
         ),
         migrations.AlterField(
             model_name="user",
             name="first_name",
-            field=models.CharField(blank=True, max_length=150, verbose_name="first name"),
+            field=models.CharField(
+                blank=True, max_length=150, verbose_name="first name"
+            ),
         ),
         migrations.AlterField(
             model_name="user",
@@ -79,7 +83,9 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="user",
             name="last_name",
-            field=models.CharField(blank=True, max_length=150, verbose_name="last name"),
+            field=models.CharField(
+                blank=True, max_length=150, verbose_name="last name"
+            ),
         ),
         migrations.AlterField(
             model_name="user",

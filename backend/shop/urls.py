@@ -1,29 +1,15 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import (
-    AdminChangeUserRoleView,
-    AdminExportOrdersView,
-    AdminImportProductsView,
-    AdminImportTemplateView,
-    AdminJobStatusView,
-    AdminOrdersViewSet,
-    AdminSummaryView,
-    AdminUsersViewSet,
-    AuthTokenObtainPairView,
-    AuthTokenRefreshView,
-    CartViewSet,
-    CategoryViewSet,
-    ChangePasswordView,
-    DeleteAccountView,
-    MeView,
-    OrderViewSet,
-    ProductViewSet,
-    RegisterViewSet,
-    SupplierViewSet,
-    admin_telegram_contact,
-    telegram_message_template,
-)
+from .views import (AdminChangeUserRoleView, AdminExportOrdersView,
+                    AdminImportProductsView, AdminImportTemplateView,
+                    AdminJobStatusView, AdminOrdersViewSet, AdminSummaryView,
+                    AdminUsersViewSet, AuthTokenObtainPairView,
+                    AuthTokenRefreshView, CartViewSet, CategoryViewSet,
+                    ChangePasswordView, DeleteAccountView, MeView,
+                    OrderViewSet, ProductViewSet, RegisterViewSet,
+                    SupplierViewSet, admin_telegram_contact,
+                    telegram_message_template)
 
 router = DefaultRouter()
 router.register(r"auth/register", RegisterViewSet, basename="register")

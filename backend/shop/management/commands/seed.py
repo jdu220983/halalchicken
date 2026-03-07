@@ -36,7 +36,9 @@ class Command(BaseCommand):
 
         if User.objects.filter(username=superadmin_username).exists():
             self.stdout.write(
-                self.style.WARNING(f'User "{superadmin_username}" already exists. Skipping...')
+                self.style.WARNING(
+                    f'User "{superadmin_username}" already exists. Skipping...'
+                )
             )
         else:
             superadmin = User.objects.create_user(
@@ -62,7 +64,9 @@ class Command(BaseCommand):
 
         if User.objects.filter(username=admin_username).exists():
             self.stdout.write(
-                self.style.WARNING(f'User "{admin_username}" already exists. Skipping...')
+                self.style.WARNING(
+                    f'User "{admin_username}" already exists. Skipping...'
+                )
             )
         else:
             admin = User.objects.create_user(
@@ -84,9 +88,15 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Login Credentials:"))
         self.stdout.write(self.style.SUCCESS("=" * 60))
         self.stdout.write(
-            self.style.SUCCESS(f"SUPERADMIN: {superadmin_username} / {superadmin_password}")
+            self.style.SUCCESS(
+                f"SUPERADMIN: {superadmin_username} / {superadmin_password}"
+            )
         )
-        self.stdout.write(self.style.SUCCESS(f"ADMIN: {admin_username} / {admin_password}"))
+        self.stdout.write(
+            self.style.SUCCESS(f"ADMIN: {admin_username} / {admin_password}")
+        )
         self.stdout.write(self.style.SUCCESS("=" * 60))
         self.stdout.write("")
-        self.stdout.write(self.style.SUCCESS("You can now login at: http://localhost:5173/login"))
+        self.stdout.write(
+            self.style.SUCCESS("You can now login at: http://localhost:5173/login")
+        )

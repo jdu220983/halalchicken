@@ -20,7 +20,9 @@ except Exception:  # pragma: no cover
 
 
 class StorageBackend(Protocol):
-    def save_bytes(self, data: bytes, filename: str, content_type: str | None = None) -> str:
+    def save_bytes(
+        self, data: bytes, filename: str, content_type: str | None = None
+    ) -> str:
         """Persist bytes and return a URL (public or time-limited signed)."""
         ...
 
@@ -30,7 +32,9 @@ class LocalStorage:
     base_dir: Path
     base_url: str
 
-    def save_bytes(self, data: bytes, filename: str, content_type: str | None = None) -> str:
+    def save_bytes(
+        self, data: bytes, filename: str, content_type: str | None = None
+    ) -> str:
         self.base_dir.mkdir(parents=True, exist_ok=True)
         dest = self.base_dir / f"{uuid.uuid4()}_{filename}"
         dest.write_bytes(data)
@@ -49,7 +53,9 @@ class S3Storage:
             raise RuntimeError("boto3 is required for S3 storage")
         return boto3.client("s3", region_name=self.region)
 
-    def save_bytes(self, data: bytes, filename: str, content_type: str | None = None) -> str:
+    def save_bytes(
+        self, data: bytes, filename: str, content_type: str | None = None
+    ) -> str:
         key = f"{self.base_path.rstrip('/')}/{uuid.uuid4()}_{filename}"
         extra = {"ContentType": content_type} if content_type else {}
         self._client().put_object(Bucket=self.bucket, Key=key, Body=data, **extra)
@@ -70,7 +76,9 @@ class CloudinaryStorage:
             raise RuntimeError("cloudinary is required for CLOUDINARY storage")
         return cloudinary_uploader
 
-    def save_bytes(self, data: bytes, filename: str, content_type: str | None = None) -> str:
+    def save_bytes(
+        self, data: bytes, filename: str, content_type: str | None = None
+    ) -> str:
         uploader = self._uploader()
         # Cloudinary expects a file-like; we can pass bytes with public_id
         public_id = f"{uuid.uuid4()}_{Path(filename).stem}"
@@ -78,7 +86,9 @@ class CloudinaryStorage:
             data,
             folder=self.folder,
             public_id=public_id,
-            resource_type=("image" if (content_type or "").startswith("image/") else "raw"),
+            resource_type=(
+                "image" if (content_type or "").startswith("image/") else "raw"
+            ),
         )
         url = res.get("secure_url") or res.get("url")
         if not url:

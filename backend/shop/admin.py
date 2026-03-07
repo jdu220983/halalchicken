@@ -1,17 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
-from .models import (
-    Cart,
-    CartItem,
-    Category,
-    Order,
-    OrderItem,
-    OrderNumberSequence,
-    Product,
-    Supplier,
-    User,
-)
+from .models import (Cart, CartItem, Category, Order, OrderItem,
+                     OrderNumberSequence, Product, Supplier, User)
 
 
 @admin.register(User)
