@@ -109,9 +109,7 @@ class SessionCart(models.Model):
 
 
 class SessionCartItem(models.Model):
-    cart = models.ForeignKey(
-        SessionCart, on_delete=models.CASCADE, related_name="items"
-    )
+    cart = models.ForeignKey(SessionCart, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.DecimalField(
         max_digits=10,
@@ -131,9 +129,7 @@ class Order(models.Model):
         CONFIRMED = "Confirmed", "Confirmed"
         SHIPPED = "Shipped", "Shipped"
 
-    user = models.ForeignKey(
-        "User", on_delete=models.PROTECT, related_name="orders", db_index=True
-    )
+    user = models.ForeignKey("User", on_delete=models.PROTECT, related_name="orders", db_index=True)
     order_number = models.CharField(max_length=20, unique=True, db_index=True)
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.RECEIVED, db_index=True
@@ -181,9 +177,7 @@ class AsyncJob(models.Model):
 
     id = models.UUIDField(primary_key=True, editable=False)
     type = models.CharField(max_length=64, choices=Type.choices)
-    status = models.CharField(
-        max_length=16, choices=Status.choices, default=Status.PENDING
-    )
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     input_params = models.JSONField(default=dict, blank=True)
     result_url = models.URLField(blank=True)
     error = models.TextField(blank=True)

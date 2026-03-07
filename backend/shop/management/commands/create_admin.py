@@ -29,9 +29,7 @@ class Command(BaseCommand):
 
         # Check if user already exists
         if User.objects.filter(username=username).exists():
-            self.stdout.write(
-                self.style.ERROR(f'User with username "{username}" already exists!')
-            )
+            self.stdout.write(self.style.ERROR(f'User with username "{username}" already exists!'))
             return
 
         # Create user

@@ -120,9 +120,7 @@ class DeleteAccountView(APIView):
         password = request.data.get("password")
 
         if not password:
-            return Response(
-                {"detail": "Password is required to delete account."}, status=400
-            )
+            return Response({"detail": "Password is required to delete account."}, status=400)
 
         # Verify password
         user = request.user
@@ -175,9 +173,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     """Product CRUD & list with filters/search (no prices exposed)."""
 
-    queryset = (
-        Product.objects.select_related("category", "supplier").all().order_by("id")
-    )
+    queryset = Product.objects.select_related("category", "supplier").all().order_by("id")
     serializer_class = ProductSerializer
     permission_classes = [IsAdminOrReadOnly]
     filterset_fields = ["status", "category", "supplier"]
@@ -194,9 +190,7 @@ class CartViewSet(viewsets.ViewSet):
         if user.is_authenticated and user.role in ["ADMIN", "SUPERADMIN"]:
             from rest_framework.exceptions import PermissionDenied
 
-            raise PermissionDenied(
-                "Cart functionality is not available for admin users."
-            )
+            raise PermissionDenied("Cart functionality is not available for admin users.")
 
     def _session_key(self, request):
         # Try custom header first (for frontend), then fall back to Django session
@@ -243,9 +237,7 @@ class CartViewSet(viewsets.ViewSet):
             }
             for it in scart.items.select_related("product").all()
         ]
-        return Response(
-            {"id": scart.id, "items": items, "created_at": scart.created_at}
-        )
+        return Response({"id": scart.id, "items": items, "created_at": scart.created_at})
 
     @action(detail=False, methods=["post"])
     def items(self, request):
@@ -294,9 +286,7 @@ class OrderViewSet(GenericViewSet):
         if self.request.user.role in ["ADMIN", "SUPERADMIN"]:
             from rest_framework.exceptions import PermissionDenied
 
-            raise PermissionDenied(
-                "Order functionality is only available for customer users."
-            )
+            raise PermissionDenied("Order functionality is only available for customer users.")
 
     def get_throttles(self):  # apply throttle only to create action
         if getattr(self, "action", None) == "create":
@@ -321,12 +311,8 @@ class OrderViewSet(GenericViewSet):
 
     def retrieve(self, request, pk=None):
         self._check_customer_only()
-        order = get_object_or_404(
-            Order.objects.prefetch_related("items__product"), pk=pk
-        )
-        if order.user_id != request.user.id and getattr(
-            request.user, "role", ""
-        ) not in {
+        order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=pk)
+        if order.user_id != request.user.id and getattr(request.user, "role", "") not in {
             "ADMIN",
             "SUPERADMIN",
         }:
@@ -335,20 +321,14 @@ class OrderViewSet(GenericViewSet):
 
     def create(self, request):
         self._check_customer_only()
-        cart = (
-            Cart.objects.filter(user=request.user)
-            .prefetch_related("items__product")
-            .first()
-        )
+        cart = Cart.objects.filter(user=request.user).prefetch_related("items__product").first()
         if not cart or cart.items.count() == 0:
             return Response({"detail": "Cart is empty"}, status=400)
         with transaction.atomic():
             order_number = OrderNumberSequence.next_for_today()
             order = Order.objects.create(user=request.user, order_number=order_number)
             for item in cart.items.all():
-                OrderItem.objects.create(
-                    order=order, product=item.product, quantity=item.quantity
-                )
+                OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity)
             cart.items.all().delete()
 
         # Send Telegram notification to admins (async, don't block response)
@@ -375,9 +355,7 @@ class OrderViewSet(GenericViewSet):
             import logging
 
             logger = logging.getLogger(__name__)
-            logger.error(
-                f"Failed to send Telegram notification for order {order.id}: {e}"
-            )
+            logger.error(f"Failed to send Telegram notification for order {order.id}: {e}")
 
         return Response(OrderSerializer(order).data, status=201)
 
@@ -390,9 +368,7 @@ class OrderViewSet(GenericViewSet):
         - Quantities accumulate on repeated calls (idempotence is additive)
         """
         self._check_customer_only()
-        order = get_object_or_404(
-            Order.objects.prefetch_related("items__product"), pk=pk
-        )
+        order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=pk)
 
         # Check ownership (only the customer who placed the order can reorder)
         if order.user_id != request.user.id:
@@ -494,9 +470,7 @@ class AdminChangeUserRoleView(APIView):
 
         if new_role not in ["CUSTOMER", "ADMIN", "SUPERADMIN"]:
             return Response(
-                {
-                    "detail": "Invalid role. Must be one of: CUSTOMER, ADMIN, SUPERADMIN."
-                },
+                {"detail": "Invalid role. Must be one of: CUSTOMER, ADMIN, SUPERADMIN."},
                 status=400,
             )
 
@@ -549,9 +523,7 @@ class AuthTokenRefreshView(TokenRefreshView):
 def telegram_message_template(request):
     """Return a prefilled Telegram text (no prices), ready to URL-encode."""
     order_id = request.query_params.get("orderId")
-    order = get_object_or_404(
-        Order.objects.prefetch_related("items__product"), pk=order_id
-    )
+    order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=order_id)
     if order.user_id != request.user.id and getattr(request.user, "role", "") not in {
         "ADMIN",
         "SUPERADMIN",
@@ -696,9 +668,7 @@ class AdminImportProductsView(APIView):
 
         max_mb = float(os.getenv("MAX_IMPORT_MB", "10"))
         if getattr(file, "size", None) and file.size > max_mb * 1024 * 1024:
-            return Response(
-                {"detail": f"File too large. Max {int(max_mb)} MB"}, status=400
-            )
+            return Response({"detail": f"File too large. Max {int(max_mb)} MB"}, status=400)
 
         file_bytes = file.read()
         if not file_bytes:
@@ -732,9 +702,7 @@ class AdminImportTemplateView(APIView):
                 "status",
             ]
         )
-        ws.append(
-            ["Chicken breast", "Куриная грудка", "Breast", "Farm A", "", "", "true"]
-        )
+        ws.append(["Chicken breast", "Куриная грудка", "Breast", "Farm A", "", "", "true"])
         ws.append(["Chicken leg", "Куриная ножка", "Leg", "Farm B", "", "", "false"])
 
         from io import BytesIO
@@ -747,9 +715,7 @@ class AdminImportTemplateView(APIView):
             buf.getvalue(),
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        response["Content-Disposition"] = (
-            'attachment; filename="product_import_template.xlsx"'
-        )
+        response["Content-Disposition"] = 'attachment; filename="product_import_template.xlsx"'
         return response
 
 
