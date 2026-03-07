@@ -13,28 +13,35 @@ test('register, add to cart, place order, success whatsapp CTA', async ({
   const username = `user${Date.now()}@e2e.test`
   const password = 'Passw0rd!'
   const reg = await page.request.post(`${API}/api/auth/register/`, {
-    data: { username, password },
+    data: {
+      username,
+      password,
+      user_type: 'INDIVIDUAL',
+      fio: 'E2E User',
+      phone: '+998901112233',
+      address: 'Tashkent',
+    },
   })
   expect(reg.ok()).toBeTruthy()
-  const tok = await (
-    await page.request.post(`${API}/api/auth/login/`, {
-      data: { username, password },
-    })
-  ).json()
-  // Inject token into app store
-  await page.addInitScript(() => {
-    // @ts-ignore
-    window.__setToken = (val) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(window as any).useAuth?.getState?.().setToken(val)
-      localStorage.setItem('access', val)
-    }
+  const loginRes = await page.request.post(`${API}/api/auth/login/`, {
+    data: { username, password },
   })
-  await page.reload()
-  await page.evaluate((t) => {
-    // @ts-ignore
-    window.__setToken?.(t)
-  }, tok.access)
+  expect(loginRes.ok()).toBeTruthy()
+  const tok = await loginRes.json()
+
+  const meRes = await page.request.get(`${API}/api/auth/me/`, {
+    headers: { Authorization: `Bearer ${tok.access}` },
+  })
+  expect(meRes.ok()).toBeTruthy()
+  const me = await meRes.json()
+
+  await page.addInitScript(({ access, refresh, user }) => {
+    localStorage.setItem('access_token', access)
+    localStorage.setItem('refresh_token', refresh)
+    localStorage.setItem('user', JSON.stringify(user))
+  }, { access: tok.access, refresh: tok.refresh, user: me })
+
+  await page.goto('/')
 
   // Add first product
   await expect(page.getByTestId('home-skeleton')).toBeHidden({ timeout: 10000 })
@@ -43,10 +50,10 @@ test('register, add to cart, place order, success whatsapp CTA', async ({
   await addBtns.first().click()
 
   // Go to cart and place order
-  await page.getByRole('link', { name: 'Cart' }).click()
+  await page.goto('/cart')
   await expect(page.getByTestId('cart-empty')).toBeHidden()
   await page.getByTestId('place-order').click()
   await expect(page).toHaveURL(/checkout\/success/)
   await expect(page.getByTestId('order-number')).toBeVisible()
-  await expect(page.getByRole('link', { name: /WhatsApp/i })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Telegram/i })).toBeVisible()
 })

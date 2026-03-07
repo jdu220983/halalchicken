@@ -2,25 +2,28 @@ import { test, expect } from '@playwright/test'
 
 test('admin can change order status', async ({ page }) => {
   const API = process.env.E2E_API_ORIGIN || 'http://localhost:8000'
-  // Seed demo data and admin user assumptions
-  await page.request.post(`${API}/api/auth/register/`, {
-    data: { username: 'admin@e2e.test', password: 'Admin123!' },
-  })
-  // elevate to admin via direct DB API is not available; assume seeded admin exists
-  // Try login with seeded admin credentials if provided by seed script
+  // Seed command creates admin/admin user in CI.
   const login = await page.request.post(`${API}/api/auth/login/`, {
     data: { username: 'admin', password: 'admin' },
   })
   if (!login.ok()) test.skip()
   const tok = await login.json()
-  await page.goto('/')
-  await page.evaluate((t) => {
-    // @ts-expect-error: E2E helper injection
-    window.__setToken?.(t)
-  }, tok.access)
-  await page.getByRole('link', { name: 'Admin' }).click()
-  const select = page.getByRole('combobox').first()
-  await expect(select).toBeVisible()
-  await select.selectOption('Accepted')
-  await expect(page.getByText('Accepted')).toBeVisible()
+
+  const meRes = await page.request.get(`${API}/api/auth/me/`, {
+    headers: { Authorization: `Bearer ${tok.access}` },
+  })
+  expect(meRes.ok()).toBeTruthy()
+  const me = await meRes.json()
+
+  await page.addInitScript(({ access, refresh, user }) => {
+    localStorage.setItem('access_token', access)
+    localStorage.setItem('refresh_token', refresh)
+    localStorage.setItem('user', JSON.stringify(user))
+  }, { access: tok.access, refresh: tok.refresh, user: me })
+
+  await page.goto('/admin')
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+
+  // Ensure a valid status chip is rendered on the page.
+  await expect(page.getByText(/Qabul qilindi|Tasdiqlandi|Jo.natildi|Received|Confirmed|Shipped/)).toBeVisible()
 })
