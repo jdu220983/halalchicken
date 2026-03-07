@@ -197,6 +197,15 @@ REST_FRAMEWORK = {
     },
 }
 
+# CI/pytest can issue many auth requests in a short burst; relax rates in test mode
+# to avoid flaky 429s while keeping throttling enabled in normal environments.
+if os.getenv("USE_SQLITE_FOR_TESTS") == "1":
+    REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
+        "auth": "100000/min",
+        "order_create": "100000/min",
+        "upload_import": "100000/min",
+    }
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Halal Chicken API",
     "DESCRIPTION": "Price-on-Request e-commerce API",
