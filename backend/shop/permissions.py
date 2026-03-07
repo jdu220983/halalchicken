@@ -7,9 +7,7 @@ class IsAdminOrReadOnly(BasePermission):
             return True
         user = request.user
         return bool(
-            user
-            and user.is_authenticated
-            and getattr(user, "role", "") in {"ADMIN", "SUPERADMIN"}
+            user and user.is_authenticated and getattr(user, "role", "") in {"ADMIN", "SUPERADMIN"}
         )
 
 
@@ -22,15 +20,11 @@ class IsAdmin(BasePermission):
     def has_permission(self, request, view):
         user = request.user
         return bool(
-            user
-            and user.is_authenticated
-            and getattr(user, "role", "") in {"ADMIN", "SUPERADMIN"}
+            user and user.is_authenticated and getattr(user, "role", "") in {"ADMIN", "SUPERADMIN"}
         )
 
 
 class IsSuperAdmin(BasePermission):
     def has_permission(self, request, view):
         user = request.user
-        return bool(
-            user and user.is_authenticated and getattr(user, "role", "") == "SUPERADMIN"
-        )
+        return bool(user and user.is_authenticated and getattr(user, "role", "") == "SUPERADMIN")

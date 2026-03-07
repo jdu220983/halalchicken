@@ -36,9 +36,7 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
         response["Referrer-Policy"] = "same-origin"
         response["X-Frame-Options"] = "DENY"
         if not settings.DEBUG:
-            response["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains; preload"
-            )
+            response["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
             # Optional CSP (enabled via env)
             if getattr(settings, "CSP_ENABLED", False):
                 extra_connect = getattr(settings, "CSP_CONNECT_SRC_EXTRA", "").strip()

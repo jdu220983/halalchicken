@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+
 from shop.models import Category, Product, Supplier
 
 
@@ -9,9 +10,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         User = get_user_model()
         # Ensure an admin user exists for E2E/CI
-        admin, created = User.objects.get_or_create(
-            username="admin", defaults={"role": "ADMIN"}
-        )
+        admin, created = User.objects.get_or_create(username="admin", defaults={"role": "ADMIN"})
         if created:
             admin.set_password("admin")
             admin.save(update_fields=["password"])

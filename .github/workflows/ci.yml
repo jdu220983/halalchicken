@@ -39,7 +39,7 @@ jobs:
           pip install pytest pytest-django
       - name: Lint
         run: |
-          pip install black isort flake8 mypy django-stubs djangorestframework-stubs
+          pip install black==24.8.0 isort flake8 mypy django-stubs djangorestframework-stubs
           black --check .
           isort --check-only .
           flake8 .

@@ -124,9 +124,7 @@ def import_products_task(job_id: str, file_bytes: bytes) -> None:
             if header != expected:
                 raise ValueError(f"Invalid header. Expected {expected}, got {header}")
 
-            actions: list[tuple[int, str, str, list[str]]] = (
-                []
-            )  # row, action, message, errors
+            actions: list[tuple[int, str, str, list[str]]] = []  # row, action, message, errors
             created, updated, skipped = 0, 0, 0
 
             for idx, row in enumerate(ws.iter_rows(min_row=2), start=2):
