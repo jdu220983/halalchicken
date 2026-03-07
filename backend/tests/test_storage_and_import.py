@@ -35,7 +35,9 @@ def test_storage_cloudinary_secure_url(monkeypatch):
     class MockUploader:
         @staticmethod
         def upload(data, **kwargs):  # noqa: ARG002
-            return {"secure_url": "https://res.cloudinary.com/demo/image/upload/v1/test.png"}
+            return {
+                "secure_url": "https://res.cloudinary.com/demo/image/upload/v1/test.png"
+            }
 
     with mock.patch("shop.storage.cloudinary_uploader", MockUploader):
         from shop.storage import get_storage
@@ -137,5 +139,7 @@ def test_import_products_strict(monkeypatch, admin_client):
 
     import_products_task(job_id, buf.getvalue())
 
-    status = admin_client.get(reverse("admin_job_status", kwargs={"job_id": job_id})).json()
+    status = admin_client.get(
+        reverse("admin_job_status", kwargs={"job_id": job_id})
+    ).json()
     assert status["status"] in ("FAILED", "SUCCESS")

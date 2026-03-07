@@ -19,7 +19,9 @@ class TelegramService:
     def __init__(self):
         self.bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         self.admin_chat_ids = self._parse_admin_chat_ids()
-        self.api_url = f"https://api.telegram.org/bot{self.bot_token}" if self.bot_token else None
+        self.api_url = (
+            f"https://api.telegram.org/bot{self.bot_token}" if self.bot_token else None
+        )
 
     def _parse_admin_chat_ids(self) -> List[str]:
         """Parse admin chat IDs from environment variable."""
@@ -27,7 +29,9 @@ class TelegramService:
         if not chat_ids_str:
             return []
         # Support comma-separated or space-separated chat IDs
-        return [cid.strip() for cid in chat_ids_str.replace(",", " ").split() if cid.strip()]
+        return [
+            cid.strip() for cid in chat_ids_str.replace(",", " ").split() if cid.strip()
+        ]
 
     def is_configured(self) -> bool:
         """Check if Telegram bot is properly configured."""
@@ -88,7 +92,10 @@ class TelegramService:
 
         # Format order items
         items_text = "\n".join(
-            [f"• {item.product.name_uz} - {item.quantity} kg" for item in order.items.all()]
+            [
+                f"• {item.product.name_uz} - {item.quantity} kg"
+                for item in order.items.all()
+            ]
         )
 
         message = f"""

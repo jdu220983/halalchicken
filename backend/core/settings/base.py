@@ -35,7 +35,8 @@ if env_file.exists():
     logger.info("Loaded environment variables from %s", env_file)
 else:
     logger.warning(
-        "Environment file not found at %s. Continuing with existing OS environment.", env_file
+        "Environment file not found at %s. Continuing with existing OS environment.",
+        env_file,
     )
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change")
@@ -127,7 +128,9 @@ else:
     }
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},

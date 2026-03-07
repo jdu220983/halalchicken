@@ -42,21 +42,37 @@ urlpatterns = [
     path("auth/refresh/", AuthTokenRefreshView.as_view(), name="token_refresh"),
     path("auth/change-password/", ChangePasswordView.as_view(), name="change_password"),
     path("auth/delete-account/", DeleteAccountView.as_view(), name="delete_account"),
-    path("telegram/message-template/", telegram_message_template, name="telegram_template"),
+    path(
+        "telegram/message-template/",
+        telegram_message_template,
+        name="telegram_template",
+    ),
     # Admin async jobs
     path(
         "admin/orders/<int:order_id>/telegram-contact/",
         admin_telegram_contact,
         name="admin_telegram_contact",
     ),
-    path("admin/export/orders/", AdminExportOrdersView.as_view(), name="admin_export_orders"),
-    path("admin/import/products/", AdminImportProductsView.as_view(), name="admin_import_products"),
+    path(
+        "admin/export/orders/",
+        AdminExportOrdersView.as_view(),
+        name="admin_export_orders",
+    ),
+    path(
+        "admin/import/products/",
+        AdminImportProductsView.as_view(),
+        name="admin_import_products",
+    ),
     path(
         "admin/import/products/template/",
         AdminImportTemplateView.as_view(),
         name="admin_import_products_template",
     ),
-    path("admin/jobs/<uuid:job_id>/", AdminJobStatusView.as_view(), name="admin_job_status"),
+    path(
+        "admin/jobs/<uuid:job_id>/",
+        AdminJobStatusView.as_view(),
+        name="admin_job_status",
+    ),
     path("admin/summary/", AdminSummaryView.as_view(), name="admin_summary"),
     path(
         "admin/users/<int:user_id>/role/",

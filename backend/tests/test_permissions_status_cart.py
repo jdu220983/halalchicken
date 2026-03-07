@@ -34,9 +34,17 @@ def test_status_machine_transitions(client):
 
     # legal transitions
     assert (
-        client.post(f"/api/orders/{order.id}/status/", {"status": "Confirmed"}).status_code == 200
+        client.post(
+            f"/api/orders/{order.id}/status/", {"status": "Confirmed"}
+        ).status_code
+        == 200
     )
-    assert client.post(f"/api/orders/{order.id}/status/", {"status": "Shipped"}).status_code == 200
+    assert (
+        client.post(
+            f"/api/orders/{order.id}/status/", {"status": "Shipped"}
+        ).status_code
+        == 200
+    )
     # illegal transition (cannot go backwards)
     bad = client.post(f"/api/orders/{order.id}/status/", {"status": "Received"})
     assert bad.status_code == 400
@@ -54,7 +62,9 @@ def test_session_cart_merge(client):
     prod = Product.objects.create(name_uz="P", name_ru="P", category=cat, supplier=sup)
 
     add = client.post(
-        "/api/cart/items/", {"product_id": prod.id, "quantity": 2}, content_type="application/json"
+        "/api/cart/items/",
+        {"product_id": prod.id, "quantity": 2},
+        content_type="application/json",
     )
     assert add.status_code in (200, 201)
     anon_cart = client.get("/api/cart/").json()
@@ -82,9 +92,13 @@ def test_role_change_superadmin_only(client):
     from django.contrib.auth import get_user_model
 
     U = get_user_model()
-    customer = U.objects.create_user(username="customer1", password="Pass123!", role="CUSTOMER")
+    customer = U.objects.create_user(
+        username="customer1", password="Pass123!", role="CUSTOMER"
+    )
     U.objects.create_user(username="admin1", password="Pass123!", role="ADMIN")
-    U.objects.create_user(username="superadmin1", password="Pass123!", role="SUPERADMIN")
+    U.objects.create_user(
+        username="superadmin1", password="Pass123!", role="SUPERADMIN"
+    )
 
     # Admin cannot change roles
     tok = client.post(
@@ -95,7 +109,9 @@ def test_role_change_superadmin_only(client):
     assert tok.status_code == 200
     client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {tok.json()['access']}"
     resp = client.post(
-        f"/api/admin/users/{customer.id}/role/", {"role": "ADMIN"}, content_type="application/json"
+        f"/api/admin/users/{customer.id}/role/",
+        {"role": "ADMIN"},
+        content_type="application/json",
     )
     assert resp.status_code == 403
 
@@ -108,7 +124,9 @@ def test_role_change_superadmin_only(client):
     assert tok.status_code == 200
     client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {tok.json()['access']}"
     resp = client.post(
-        f"/api/admin/users/{customer.id}/role/", {"role": "ADMIN"}, content_type="application/json"
+        f"/api/admin/users/{customer.id}/role/",
+        {"role": "ADMIN"},
+        content_type="application/json",
     )
     assert resp.status_code == 200
     customer.refresh_from_db()

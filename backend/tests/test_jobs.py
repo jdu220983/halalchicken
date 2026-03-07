@@ -12,7 +12,9 @@ from rest_framework.test import APIClient
 def test_admin_export_orders_enqueues():
     client = APIClient()
     U = get_user_model()
-    admin_user = U.objects.create_user(username="adminx", password="Pass123!", role="ADMIN")
+    admin_user = U.objects.create_user(
+        username="adminx", password="Pass123!", role="ADMIN"
+    )
     client.force_authenticate(admin_user)
     url = reverse("admin_export_orders")
     with mock.patch("shop.tasks.export_orders_task.delay", lambda *a, **k: None):
@@ -25,7 +27,9 @@ def test_admin_export_orders_enqueues():
 def test_admin_import_products_enqueues():
     client = APIClient()
     U = get_user_model()
-    admin_user = U.objects.create_user(username="adminy", password="Pass123!", role="ADMIN")
+    admin_user = U.objects.create_user(
+        username="adminy", password="Pass123!", role="ADMIN"
+    )
     client.force_authenticate(admin_user)
     url = reverse("admin_import_products")
     # Build a minimal xlsx in memory with required header
@@ -35,7 +39,17 @@ def test_admin_import_products_enqueues():
         pytest.skip("openpyxl not available")
     wb = Workbook()
     ws = wb.active
-    ws.append(["name_uz", "name_ru", "category", "supplier", "image_url", "description", "status"])
+    ws.append(
+        [
+            "name_uz",
+            "name_ru",
+            "category",
+            "supplier",
+            "image_url",
+            "description",
+            "status",
+        ]
+    )
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
@@ -54,7 +68,9 @@ def test_admin_import_products_enqueues():
 def test_admin_import_products_rejects_non_xlsx():
     client = APIClient()
     U = get_user_model()
-    admin_user = U.objects.create_user(username="adminz", password="Pass123!", role="ADMIN")
+    admin_user = U.objects.create_user(
+        username="adminz", password="Pass123!", role="ADMIN"
+    )
     client.force_authenticate(admin_user)
     url = reverse("admin_import_products")
     upload = SimpleUploadedFile("bad.txt", b"data", content_type="text/plain")
@@ -67,7 +83,9 @@ def test_admin_import_products_rejects_non_xlsx():
 def test_admin_import_template_download():
     client = APIClient()
     U = get_user_model()
-    admin_user = U.objects.create_user(username="admint", password="Pass123!", role="ADMIN")
+    admin_user = U.objects.create_user(
+        username="admint", password="Pass123!", role="ADMIN"
+    )
     client.force_authenticate(admin_user)
     url = reverse("admin_import_products_template")
     resp = client.get(url)

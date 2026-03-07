@@ -70,7 +70,9 @@ class RegisterSerializer(serializers.ModelSerializer):
             missing += [field for field in required_legal if not attrs.get(field)]
 
         if missing:
-            raise serializers.ValidationError({f: "This field is required." for f in missing})
+            raise serializers.ValidationError(
+                {f: "This field is required." for f in missing}
+            )
         return attrs
 
     def validate_inn(self, value: str) -> str:
@@ -130,8 +132,12 @@ class ProductSerializer(serializers.ModelSerializer):
         queryset=Supplier.objects.all(), write_only=True, source="supplier"
     )
     image_file = serializers.FileField(write_only=True, required=False, allow_null=True)
-    name_uz = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
-    name_ru = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+    name_uz = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, default=""
+    )
+    name_ru = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, default=""
+    )
 
     class Meta:
         model = Product
@@ -164,7 +170,9 @@ class ProductSerializer(serializers.ModelSerializer):
             image_type = None
         f.seek(0)
         if image_type not in {"jpeg", "png", "webp"}:
-            raise serializers.ValidationError("Unsupported image type. Allowed: jpg, png, webp")
+            raise serializers.ValidationError(
+                "Unsupported image type. Allowed: jpg, png, webp"
+            )
         # size check
         max_mb = float(os.getenv("MAX_IMAGE_MB", "5"))
         if f.size and f.size > max_mb * 1024 * 1024:
@@ -246,7 +254,15 @@ class AdminOrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ("id", "order_number", "status", "created_at", "updated_at", "items", "user")
+        fields = (
+            "id",
+            "order_number",
+            "status",
+            "created_at",
+            "updated_at",
+            "items",
+            "user",
+        )
 
     def get_user(self, obj):
         """Return user contact info for admin views."""
@@ -258,5 +274,7 @@ class AdminOrderSerializer(serializers.ModelSerializer):
             "phone": user.phone,
             "email": user.email,
             "user_type": user.user_type,
-            "company_name": user.company_name if user.user_type == User.UserType.LEGAL else None,
+            "company_name": (
+                user.company_name if user.user_type == User.UserType.LEGAL else None
+            ),
         }

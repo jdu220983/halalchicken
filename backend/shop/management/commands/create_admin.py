@@ -12,7 +12,9 @@ class Command(BaseCommand):
         parser.add_argument("email", type=str, help="Email for the admin")
         parser.add_argument("password", type=str, help="Password for the admin")
         parser.add_argument(
-            "--superadmin", action="store_true", help="Create as SUPERADMIN instead of ADMIN"
+            "--superadmin",
+            action="store_true",
+            help="Create as SUPERADMIN instead of ADMIN",
         )
         parser.add_argument("--fio", type=str, default="Admin User", help="Full name")
         parser.add_argument("--phone", type=str, default="", help="Phone number")
@@ -27,12 +29,19 @@ class Command(BaseCommand):
 
         # Check if user already exists
         if User.objects.filter(username=username).exists():
-            self.stdout.write(self.style.ERROR(f'User with username "{username}" already exists!'))
+            self.stdout.write(
+                self.style.ERROR(f'User with username "{username}" already exists!')
+            )
             return
 
         # Create user
         user = User.objects.create_user(
-            username=username, email=email, password=password, role=role, fio=fio, phone=phone
+            username=username,
+            email=email,
+            password=password,
+            role=role,
+            fio=fio,
+            phone=phone,
         )
 
         self.stdout.write(
