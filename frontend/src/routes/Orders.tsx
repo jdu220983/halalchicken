@@ -19,7 +19,7 @@ const statusColors: Record<OrderStatus, string> = {
 
 export function Orders() {
   const { language, user } = useAuth()
-  const { orders, isLoading, reorder } = useOrders()
+  const { orders, isLoading, reorder, refreshOrders } = useOrders()
   const { fetchCart } = useCart()
   const navigate = useNavigate()
   const toast = useToast()
@@ -31,8 +31,10 @@ export function Orders() {
       navigate("/login")
     } else if (user.role !== "CUSTOMER") {
       navigate("/admin")
+    } else {
+      refreshOrders()
     }
-  }, [user, navigate])
+  }, [user, navigate, refreshOrders])
 
   const handleReorder = async (orderId: number) => {
     setReorderingId(orderId)

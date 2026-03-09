@@ -34,6 +34,8 @@ test('profile edit saves', async ({ page }) => {
     localStorage.setItem('user', JSON.stringify(user))
   }, { access: tok.access, refresh: tok.refresh, user: me })
 
+  await page.goto('/')
+  await page.waitForFunction(() => !document.querySelector('a[href="/login"]'))
   await page.goto('/profile')
   const address = page.locator('#address')
   await expect(address).toBeVisible()

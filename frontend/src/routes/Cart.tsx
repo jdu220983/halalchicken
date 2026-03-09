@@ -129,7 +129,7 @@ export function Cart() {
   if (!cart || cart.items.length === 0) {
     return (
       <div className="container py-16">
-        <div className="max-w-2xl mx-auto text-center space-y-6">
+        <div data-testid="cart-empty" className="max-w-2xl mx-auto text-center space-y-6">
           <div className="flex justify-center">
             <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
               <ShoppingBag className="h-12 w-12 text-muted-foreground" />
@@ -247,6 +247,7 @@ export function Cart() {
               </div>
 
               <Button
+                data-testid="place-order"
                 className="w-full"
                 size="lg"
                 onClick={handleCheckout}

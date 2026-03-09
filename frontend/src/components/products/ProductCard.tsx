@@ -72,6 +72,7 @@ export function ProductCard({ product }: ProductCardProps) {
       {isCustomer && (
         <CardFooter className="p-4 pt-0">
           <Button
+            data-testid="add-to-cart"
             className="w-full"
             onClick={handleAddToCart}
             disabled={!product.status || isAdding}

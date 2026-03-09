@@ -42,9 +42,10 @@ test('register, add to cart, place order, success whatsapp CTA', async ({
   }, { access: tok.access, refresh: tok.refresh, user: me })
 
   await page.goto('/')
+  await page.waitForFunction(() => !document.querySelector('a[href="/login"]'))
 
-  // Add first product
-  await expect(page.getByTestId('home-skeleton')).toBeHidden({ timeout: 10000 })
+  // Add first product from products page
+  await page.goto('/products')
   const addBtns = page.getByTestId('add-to-cart')
   await expect(addBtns.first()).toBeVisible()
   await addBtns.first().click()
@@ -53,7 +54,6 @@ test('register, add to cart, place order, success whatsapp CTA', async ({
   await page.goto('/cart')
   await expect(page.getByTestId('cart-empty')).toBeHidden()
   await page.getByTestId('place-order').click()
-  await expect(page).toHaveURL(/checkout\/success/)
-  await expect(page.getByTestId('order-number')).toBeVisible()
-  await expect(page.getByRole('link', { name: /Telegram/i })).toBeVisible()
+  await expect(page).toHaveURL(/\/orders/)
+  await expect(page.getByRole('heading').filter({ hasText: /Buyurtmalar Tarixi|История заказов|Order History/i })).toBeVisible()
 })

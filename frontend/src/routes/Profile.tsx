@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export function Profile() {
-  const { language, user, updateUser, logout } = useAuth()
+  const { language, user, updateUser, logout, isLoading } = useAuth()
   const { push: toast } = useToast()
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
@@ -46,6 +46,9 @@ export function Profile() {
   const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
+    if (isLoading) {
+      return
+    }
     if (!user) {
       navigate('/login')
       return
@@ -55,7 +58,7 @@ export function Profile() {
       phone: user.phone,
       address: user.address,
     })
-  }, [user, navigate])
+  }, [user, isLoading, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -150,6 +153,7 @@ export function Profile() {
     }
   }
 
+  if (isLoading) return null
   if (!user) return null
 
   return (

@@ -80,7 +80,7 @@ interface AdminOrder extends Omit<Order, 'user'> {
 }
 
 export function Admin() {
-  const { language, user } = useAuth()
+  const { language, user, isLoading } = useAuth()
   const { push: toast } = useToast()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'categories' | 'suppliers' | 'users' | 'excel'>('orders')
@@ -150,13 +150,16 @@ export function Admin() {
   const PAGE_SIZE = 10
 
   useEffect(() => {
+    if (isLoading) {
+      return
+    }
     if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
       navigate('/')
       return
     }
 
     fetchAdminData()
-  }, [user, navigate])
+  }, [user, isLoading, navigate])
 
   const fetchOrders = useCallback(async (page = 1) => {
     try {
@@ -751,6 +754,14 @@ export function Admin() {
     } finally {
       setDeleteLoading(false)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container py-8">
+        <div className="text-center">{t('loading', language)}</div>
+      </div>
+    )
   }
 
   if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
