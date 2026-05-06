@@ -44,11 +44,22 @@ test('register, add to cart, place order, success whatsapp CTA', async ({
   await page.goto('/')
   await page.waitForFunction(() => !document.querySelector('a[href="/login"]'))
 
-  // Add first product from products page
-  await page.goto('/products')
+  // Navigate to products via SPA link (avoids full-page reload auth race)
+  const productsApiPromise = page.waitForResponse(
+    (resp) => resp.url().includes('/api/products') && resp.ok(),
+  )
+  await page.locator('a[href="/products"]').first().click()
+  await productsApiPromise
+
   const addBtns = page.getByTestId('add-to-cart')
   await expect(addBtns.first()).toBeVisible()
+
+  // Click add-to-cart and wait for the cart API response
+  const cartApiPromise = page.waitForResponse(
+    (resp) => resp.url().includes('/api/cart') && resp.ok(),
+  )
   await addBtns.first().click()
+  await cartApiPromise
 
   // Go to cart and place order
   await page.goto('/cart')

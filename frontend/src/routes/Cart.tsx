@@ -8,15 +8,23 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Trash2, ShoppingBag } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
-import { createOrder, telegramTemplate } from '@/lib/api'
+import { createOrder, updateMe } from '@/lib/api'
+import { cleanPhone, generateCustomerWhatsAppUrl, getAdminWhatsAppPhone } from '@/lib/whatsapp'
 
 export function Cart() {
-  const { language, user } = useAuth()
+  const { language, user, updateUser } = useAuth()
   const { cart, updateQuantity, removeFromCart, fetchCart, itemCount, isLoading } = useCart()
   const { push: toast } = useToast()
   const navigate = useNavigate()
-  const [contactInfo, setContactInfo] = useState<{ text: string; orderNumber: string } | null>(null)
   const [quantityInputs, setQuantityInputs] = useState<Record<number, string>>({})
+  const [checkoutData, setCheckoutData] = useState({
+    fio: '',
+    phone: '',
+    address: '',
+    saveToProfile: false,
+  })
+  const [checkoutErrors, setCheckoutErrors] = useState<Partial<Record<'fio' | 'phone' | 'address', string>>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     // Redirect admins away from cart page
@@ -27,36 +35,123 @@ export function Cart() {
     fetchCart()
   }, [fetchCart, user, navigate])
 
-  const shareOnTelegram = (text: string) => {
-    const encoded = encodeURIComponent(text)
-    window.open(`https://t.me/share/url?url=&text=${encoded}`, '_blank')
-  }
-
-  const handleContactClick = () => {
-    if (contactInfo) {
-      shareOnTelegram(contactInfo.text)
-    }
-  }
+  useEffect(() => {
+    setCheckoutData((prev) => ({
+      ...prev,
+      fio: user?.fio || '',
+      phone: user?.phone || '',
+      address: user?.address || '',
+    }))
+  }, [user])
 
   const handleCheckout = async () => {
-    if (!cart || cart.items.length === 0) return
+    if (!cart || cart.items.length === 0) {
+      toast({
+        message: language === 'ru' ? 'Корзина пуста' : 'Savat bo‘sh',
+        type: 'error',
+      })
+      return
+    }
+
+    if (isSubmitting) return
+
+    const nextErrors: Partial<Record<'fio' | 'phone' | 'address', string>> = {}
+    const trimmedFio = checkoutData.fio.trim()
+    const trimmedPhone = checkoutData.phone.trim()
+    const trimmedAddress = checkoutData.address.trim()
+    const normalizedPhone = cleanPhone(trimmedPhone)
+
+    if (!trimmedFio) nextErrors.fio = language === 'ru' ? 'Введите ФИО' : 'F.I.O ni kiriting'
+    if (!trimmedPhone) {
+      nextErrors.phone = language === 'ru' ? 'Введите номер телефона' : 'Telefon raqamini kiriting'
+    } else if (!normalizedPhone) {
+      nextErrors.phone = language === 'ru' ? 'Неверный формат телефона' : 'Telefon formati noto‘g‘ri'
+    }
+    if (!trimmedAddress) nextErrors.address = language === 'ru' ? 'Введите адрес' : 'Manzilni kiriting'
+
+    setCheckoutErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
+      toast({
+        message: t('pleaseFillRequired', language) || 'Please fill required checkout fields',
+        type: 'error',
+      })
+      return
+    }
+
+    const totalWeight = cart.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+    const whatsappWindow = window.open('about:blank', '_blank')
+    setIsSubmitting(true)
 
     try {
       // Create order
-      const order = await createOrder()
+      const order = await createOrder({
+        fio: trimmedFio,
+        phone: normalizedPhone || trimmedPhone,
+        address: trimmedAddress,
+      })
       await fetchCart()
 
-      // Get telegram message template
-      const { text, order_number } = await telegramTemplate(order.id)
-      setContactInfo({ text, orderNumber: order_number })
-      shareOnTelegram(text)
-      console.info('Order placed:', order_number)
+      if (user && checkoutData.saveToProfile) {
+        const updatedUser = await updateMe({
+          fio: trimmedFio,
+          phone: trimmedPhone,
+          address: trimmedAddress,
+        })
+        if (updatedUser) {
+          updateUser(updatedUser)
+        }
+      }
+
+      // Build WhatsApp message from the cart contents and customer details
+      const orderPayload = {
+        id: order.id,
+        order_number: order.order_number,
+        items: cart.items.map((item) => ({
+          product_id: item.product.id,
+          name_ru: item.product.name_ru,
+          name_uz: item.product.name_uz,
+          quantity: item.quantity,
+          product: {
+            id: item.product.id,
+            name_ru: item.product.name_ru,
+            name_uz: item.product.name_uz,
+          },
+        })),
+        customer: {
+          name: trimmedFio,
+          phone: normalizedPhone || trimmedPhone,
+          address: trimmedAddress,
+        },
+      }
+      const waLink = generateCustomerWhatsAppUrl(
+        orderPayload as any,
+        getAdminWhatsAppPhone(),
+        language === 'uz' ? 'uz' : 'ru',
+        `${formatWeight(totalWeight)} ${t('kg', language)}`,
+      )
+
+      if (waLink) {
+        if (whatsappWindow) {
+          whatsappWindow.location.href = waLink
+        } else {
+          window.open(waLink, '_blank', 'noopener,noreferrer')
+        }
+      } else if (whatsappWindow) {
+        whatsappWindow.close()
+      }
+
+      console.info('Order placed:', order.order_number)
       
       toast({ message: t('orderPlacedSuccess', language) || 'Order placed successfully!', type: 'success' })
       navigate('/orders')
     } catch (error) {
+      if (whatsappWindow) {
+        whatsappWindow.close()
+      }
       console.error('Checkout failed:', error)
       toast({ message: t('checkoutFailed', language) || 'Failed to place order', type: 'error' })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -251,10 +346,80 @@ export function Cart() {
                 className="w-full"
                 size="lg"
                 onClick={handleCheckout}
-                disabled={!user}
+                disabled={!user || isSubmitting}
               >
-                {t('placeOrder', language)}
+                {isSubmitting ? t('loading', language) : t('placeOrder', language)}
               </Button>
+
+              <div className="space-y-3 border rounded-lg p-4">
+                <div className="space-y-2">
+                  <label htmlFor="checkout-fio" className="text-sm font-medium">
+                    FIO
+                  </label>
+                  <Input
+                    id="checkout-fio"
+                    value={checkoutData.fio}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setCheckoutData((prev) => ({ ...prev, fio: value }))
+                      setCheckoutErrors((prev) => ({ ...prev, fio: undefined }))
+                    }}
+                    placeholder={language === 'ru' ? 'ФИО' : 'F.I.O'}
+                    required
+                  />
+                  {checkoutErrors.fio && <p className="text-xs text-destructive">{checkoutErrors.fio}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="checkout-phone" className="text-sm font-medium">
+                    {t('phone', language)}
+                  </label>
+                  <Input
+                    id="checkout-phone"
+                    type="tel"
+                    value={checkoutData.phone}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setCheckoutData((prev) => ({ ...prev, phone: value }))
+                      setCheckoutErrors((prev) => ({ ...prev, phone: undefined }))
+                    }}
+                    placeholder="+998 90 123 45 67"
+                    required
+                  />
+                  {checkoutErrors.phone && <p className="text-xs text-destructive">{checkoutErrors.phone}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="checkout-address" className="text-sm font-medium">
+                    {t('address_field', language)}
+                  </label>
+                  <Input
+                    id="checkout-address"
+                    value={checkoutData.address}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setCheckoutData((prev) => ({ ...prev, address: value }))
+                      setCheckoutErrors((prev) => ({ ...prev, address: undefined }))
+                    }}
+                    placeholder={t('address_field', language)}
+                    required
+                  />
+                  {checkoutErrors.address && <p className="text-xs text-destructive">{checkoutErrors.address}</p>}
+                </div>
+
+                {user && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={checkoutData.saveToProfile}
+                      onChange={(e) =>
+                        setCheckoutData((prev) => ({ ...prev, saveToProfile: e.target.checked }))
+                      }
+                    />
+                    {language === 'ru' ? 'Сохранить в профиль' : 'Profilga saqlash'}
+                  </label>
+                )}
+              </div>
 
               {!user && (
                 <p className="text-xs text-center text-muted-foreground">
@@ -263,24 +428,16 @@ export function Cart() {
               )}
 
               <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground space-y-2">
-                <p className="font-medium">{t('contactMessageIntro', language)}</p>
-                {contactInfo ? (
-                  <>
-                    <p className="text-xs">
-                      {t('orderNumber', language)}: {contactInfo.orderNumber}
-                    </p>
-                    <Button
-                      className="w-full"
-                      variant="outline"
-                      onClick={handleContactClick}
-                      disabled={!user}
-                    >
-                      {t('contactViaTelegram', language)}
-                    </Button>
-                  </>
-                ) : (
-                  <p className="text-xs text-muted-foreground">{t('placeOrderToContact', language)}</p>
-                )}
+                <p className="font-medium">
+                  {language === 'uz'
+                    ? 'Buyurtma tasdiqlangach, WhatsApp administratorga ochiladi.'
+                    : 'После оформления заказа WhatsApp администратора откроется автоматически.'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'uz'
+                    ? 'Xabarga buyurtma, mijoz ma’lumotlari va mahsulotlar qo‘shiladi.'
+                    : 'В сообщение будут добавлены данные заказа, клиента и товары.'}
+                </p>
               </div>
             </CardContent>
           </Card>

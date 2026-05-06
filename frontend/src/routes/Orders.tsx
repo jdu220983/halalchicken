@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ShoppingBag, Package, Clock, Send } from "lucide-react"
 import { formatDateTime } from "@/lib/utils"
-import { telegramTemplate } from "@/lib/api"
+import { generateCustomerWhatsAppUrl } from '@/lib/whatsapp'
 import { useToast } from "@/lib/toast"
 
 const statusColors: Record<OrderStatus, string> = {
@@ -59,9 +59,22 @@ export function Orders() {
   const handleContact = async (orderId: number) => {
     setContactingId(orderId)
     try {
-      const { text } = await telegramTemplate(orderId)
-      const encoded = encodeURIComponent(text)
-      window.open(`https://t.me/share/url?url=&text=${encoded}`, "_blank")
+      // Find order details from local state and build WhatsApp message dynamically
+      const order = orders.find((o) => o.id === orderId)
+      if (!order) throw new Error('Order not found')
+      const orderPayload = {
+        id: order.id,
+        order_number: order.order_number,
+        items: order.items,
+        customer: {
+          name: user?.fio || user?.username || '',
+          phone: user?.phone || null,
+          address: user?.address || null,
+        },
+      }
+      const businessNum = (import.meta.env && (import.meta.env.NEXT_PUBLIC_ADMIN_WHATSAPP || import.meta.env.VITE_WHATSAPP_NUMBER || import.meta.env.NEXT_PUBLIC_WHATSAPP_NUMBER)) || '998916170642'
+      const wa = generateCustomerWhatsAppUrl(orderPayload as any, businessNum, language === 'uz' ? 'uz' : 'ru')
+      if (wa) window.open(wa, '_blank', 'noopener,noreferrer')
     } catch (error) {
       console.error("Failed to generate contact message:", error)
       toast.push({
@@ -184,7 +197,7 @@ export function Orders() {
                   disabled={contactingId === order.id}
                 >
                   <Send className="mr-2 h-4 w-4" />
-                  {contactingId === order.id ? t("loading", language) : t("contactViaTelegram", language)}
+                  {contactingId === order.id ? t("loading", language) : t("contactWhatsApp", language)}
                 </Button>
               </div>
             </CardContent>

@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { useAuth } from "@/lib/context"
+import { useAuth, useCart } from "@/lib/context"
 import { useToast } from "@/lib/toast"
 import { t } from "@/lib/i18n"
 import { Product, Category, Supplier } from "@/lib/types"
 import { ProductGrid, ProductFilters } from "@/components/products"
 import { getProducts, getCategories, getSuppliers } from "@/lib/api"
+import { Button } from "@/components/ui/button"
 
 export function Products() {
   const { language, user } = useAuth()
+  const { itemCount } = useCart()
   const { push: toast } = useToast()
   const navigate = useNavigate()
   const [products, setProducts] = useState<Product[]>([])
@@ -93,6 +95,22 @@ export function Products() {
 
       <div className="mt-8">
         <ProductGrid products={products} loading={loading} />
+      </div>
+
+      <div className="mt-8 flex items-center justify-between gap-4 rounded-xl border bg-card p-4 shadow-sm">
+        <div>
+          <p className="font-medium">
+            {language === 'uz' ? 'Tanlangan mahsulotlar' : 'Выбранные товары'}: {itemCount.toFixed(2)} {t('kg', language)}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {language === 'uz'
+              ? 'Savatga o‘ting va buyurtmani yakunlang.'
+              : 'Перейдите в корзину и завершите оформление заказа.'}
+          </p>
+        </div>
+        <Button onClick={() => navigate('/cart')} disabled={itemCount <= 0}>
+          {t('nextStep', language)}
+        </Button>
       </div>
     </div>
   )

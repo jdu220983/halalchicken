@@ -1,3 +1,4 @@
+import logging
 import os
 from decimal import Decimal
 
@@ -42,6 +43,9 @@ from .serializers import (
     UserSerializer,
 )
 
+import urllib.parse
+
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
@@ -417,11 +421,50 @@ class AdminOrdersViewSet(viewsets.ReadOnlyModelViewSet):
         .order_by("-created_at")
     )
     filterset_fields = {
-        "status": ["exact"],
         "user": ["exact"],
         "created_at": ["date__gte", "date__lte"],
     }
     ordering = ["-created_at"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        status = self.request.query_params.get("status")
+        if status:
+            qs = qs.filter(status__iexact=status.strip())
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        """Override list to add detailed logging"""
+        user = request.user
+        logger.info(
+            f"Admin orders list requested",
+            extra={
+                "user_id": user.id,
+                "user_role": user.role if hasattr(user, 'role') else 'unknown',
+                "query_params": dict(request.query_params),
+            }
+        )
+        
+        try:
+            response = super().list(request, *args, **kwargs)
+            logger.info(
+                f"Admin orders list returned successfully",
+                extra={
+                    "user_id": user.id,
+                    "count": len(response.data.get('results', [])) if hasattr(response.data, 'get') else 0,
+                }
+            )
+            return response
+        except Exception as e:
+            logger.error(
+                f"Admin orders list failed: {str(e)}",
+                extra={
+                    "user_id": user.id,
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True
+            )
+            raise
 
 
 class AdminSummaryView(APIView):
@@ -548,6 +591,102 @@ def telegram_message_template(request):
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@never_cache
+def whatsapp_message_template(request):
+    """Return a prefilled WhatsApp text (Russian) and a wa.me link.
+
+    Query params:
+    - orderId: required order id
+    - total: optional total price string (frontend may compute/format)
+    """
+    order_id = request.query_params.get("orderId")
+    order = get_object_or_404(
+        Order.objects.select_related("user").prefetch_related("items__product"),
+        pk=order_id,
+    )
+    if order.user_id != request.user.id and getattr(request.user, "role", "") not in {
+        "ADMIN",
+        "SUPERADMIN",
+    }:
+        return Response({"detail": "Forbidden"}, status=403)
+
+    customer = order.user
+    customer_name = customer.fio or customer.username
+    if customer.user_type == customer.UserType.LEGAL and customer.company_name:
+        customer_name = customer.company_name
+
+    total = request.query_params.get("total")
+    total_text = f"{total} сум" if total else "Н/Д"
+
+    lines = [
+        "Здравствуйте!",
+        "Я хочу подтвердить заказ.",
+        "",
+        f"Номер заказа: {order.order_number}",
+        "",
+        "Товары:",
+    ]
+    for it in order.items.all():
+        prod_name = it.product.name_ru or it.product.name_uz or f"Товар #{it.product_id}"
+        # Use simple multiplication sign
+        lines.append(f"- {prod_name} ×{int(it.quantity) if float(it.quantity).is_integer() else it.quantity}")
+
+    lines.extend([
+        "",
+        f"Общая сумма: {total_text}",
+        "",
+        f"Имя клиента: {customer_name}",
+        f"Телефон: {customer.phone or 'N/A'}",
+        f"Адрес: {customer.address or 'N/A'}",
+        "",
+        "Спасибо!",
+    ])
+
+    message_text = "\n".join(lines)
+
+    # Proper URL encoding for Unicode (Cyrillic)
+    encoded = urllib.parse.quote(message_text, safe="")
+
+    # Business number override or fallback
+    business_number = os.getenv("WHATSAPP_BUSINESS_NUMBER", "998916170642")
+
+    # If customer phone exists and looks valid, direct to customer's phone (clean digits)
+    target_number = business_number
+    if customer.phone:
+        clean_phone = "".join(ch for ch in customer.phone if ch.isdigit())
+        if clean_phone:
+            target_number = clean_phone
+
+    wa_link = f"https://wa.me/{target_number}?text={encoded}"
+
+    # Structured order payload for frontend to use programmatically
+    payload_order = {
+        "id": order.id,
+        "order_number": order.order_number,
+        "created_at": order.created_at,
+        "items": [
+            {"product_id": it.product_id, "name_ru": it.product.name_ru, "quantity": float(it.quantity)}
+            for it in order.items.all()
+        ],
+        "customer": {
+            "name": customer_name,
+            "phone": customer.phone or None,
+            "address": customer.address or None,
+        },
+    }
+
+    return Response(
+        {
+            "text": message_text,
+            "encoded_text": encoded,
+            "wa_link": wa_link,
+            "order": payload_order,
+        }
+    )
+
+
+@api_view(["GET"])
 @permission_classes([IsAdmin])
 @never_cache
 def admin_telegram_contact(request, order_id: int):
@@ -583,17 +722,17 @@ def admin_telegram_contact(request, order_id: int):
         ]
     )
 
-    # Build Telegram link
-    # If phone exists, use phone link; otherwise use username or generic share
+    # Build WhatsApp link
+    # If phone exists, use phone link; otherwise use a generic share link
     telegram_link = None
+    text_encoded = "%0A".join(lines)
     if customer.phone:
         # Clean phone: remove +, spaces, dashes
         clean_phone = customer.phone.replace("+", "").replace(" ", "").replace("-", "")
-        telegram_link = f"https://t.me/{clean_phone}"
+        telegram_link = f"https://wa.me/{clean_phone}?text={text_encoded}"
     else:
         # Fallback to share URL with pre-filled text
-        text_encoded = "%0A".join(lines)
-        telegram_link = f"https://t.me/share/url?url=&text={text_encoded}"
+        telegram_link = f"https://wa.me/998916170642?text={text_encoded}"
 
     return Response(
         {

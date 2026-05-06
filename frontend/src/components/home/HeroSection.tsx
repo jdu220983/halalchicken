@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 
 export function HeroSection() {
   const { language } = useAuth()
+  const phoneNumber = "998916170642"
+  const message = "Здравствуйте! Я хочу сделать заказ"
+  const encodedMessage = encodeURIComponent(message)
 
   return (
     <section className="relative w-full py-20 md:py-32 overflow-hidden bg-gradient-to-br from-primary/10 via-background to-primary/5">
@@ -34,13 +37,13 @@ export function HeroSection() {
                 </Button>
               </Link>
               
-              <a 
-                href="https://t.me/halalchickenuz"
+              <a
+                href={`https://wa.me/${phoneNumber}?text=${encodedMessage}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                  {t("contactTelegram", language)}
+                  {t("contactWhatsApp", language)}
                 </Button>
               </a>
             </div>

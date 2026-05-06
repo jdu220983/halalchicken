@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ShoppingCart, Package, Users as UsersIcon, MoreVertical, Download, Upload, FileSpreadsheet, Send, Plus, Edit, Trash2, Save } from 'lucide-react'
+import { ShoppingCart, Package, Users as UsersIcon, MoreVertical, Download, Upload, FileSpreadsheet, Plus, Edit, Trash2, Save } from 'lucide-react'
 import { PaginationControls } from '@/components/ui/pagination-controls'
 import type { Order, OrderStatus, User, Product, Category, Supplier } from '@/lib/types'
 import { formatDateTime } from '@/lib/utils'
@@ -39,8 +39,8 @@ import {
   deleteSupplier,
   getUsers,
   updateUserRole,
-  downloadTemplate,
 } from '@/lib/api'
+import { generateAdminWhatsAppUrl } from '@/lib/whatsapp'
 import {
   Dialog,
   DialogContent,
@@ -79,6 +79,16 @@ interface AdminOrder extends Omit<Order, 'user'> {
   }
 }
 
+type AdminStatusFilter = OrderStatus | 'cancelled' | 'ALL'
+
+function WhatsAppIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-current">
+      <path d="M12.04 2C6.54 2 2.08 6.37 2.08 11.77c0 1.92.57 3.8 1.65 5.4L2 22l4.99-1.67c1.54.84 3.28 1.29 5.05 1.29h.01c5.49 0 9.95-4.37 9.95-9.77S17.53 2 12.04 2Zm5.72 14.2c-.24.67-1.43 1.27-1.97 1.34-.52.07-1.19.1-1.92-.14-.44-.14-1-.33-1.73-.64-3.04-1.31-5.02-4.37-5.18-4.58-.16-.21-1.23-1.63-1.23-3.11s.76-2.2 1.03-2.49c.24-.26.64-.38 1.03-.38.13 0 .24 0 .34.01.33.01.5.03.71.53.24.58.82 2 1 2.2.17.2.29.43.05.76-.11.15-.19.26-.35.42-.17.17-.35.36-.5.49-.17.17-.35.35-.15.69.2.34.89 1.47 1.91 2.38 1.32 1.17 2.43 1.53 2.77 1.7.34.17.54.14.74-.08.2-.22.85-.98 1.08-1.31.24-.33.46-.28.77-.17.31.11 1.96.92 2.3 1.09.34.17.56.26.65.4.09.14.09.81-.15 1.48Z" />
+    </svg>
+  )
+}
+
 export function Admin() {
   const { language, user, isLoading } = useAuth()
   const { push: toast } = useToast()
@@ -90,7 +100,7 @@ export function Admin() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'ALL'>('ALL')
+  const [statusFilter, setStatusFilter] = useState<AdminStatusFilter>('ALL')
   const [exportJob, setExportJob] = useState<AsyncJob | null>(null)
   const [importJob, setImportJob] = useState<AsyncJob | null>(null)
   const [loading, setLoading] = useState(true)
@@ -374,6 +384,7 @@ export function Admin() {
     Shipped: [],
   }
   const statusTimeline: OrderStatus[] = ['Received', 'Confirmed', 'Shipped']
+  const statusFilterOptions: AdminStatusFilter[] = ['Received', 'Confirmed', 'Shipped', 'cancelled']
 
   const filteredOrders = orders
   const availableRoles = ['CUSTOMER', 'ADMIN', 'SUPERADMIN']
@@ -431,15 +442,37 @@ export function Admin() {
     }
   }
 
-  const handleContactCustomer = async (orderId: number) => {
-    try {
-      const contactInfo = await adminTelegramContact(orderId)
-      // Open Telegram link in new tab
-      window.open(contactInfo.telegram_link, '_blank')
-    } catch (error) {
-      console.error('Failed to get Telegram contact info:', error)
-      toast({ message: t('errorGettingTelegramContact', language) || 'Failed to get Telegram contact', type: 'error' })
+  const handleContactCustomer = async (order: AdminOrder) => {
+    if (!order || !order.id) {
+      toast({
+        message: language === 'uz' ? 'Buyurtma topilmadi.' : 'Заказ не найден.',
+        type: 'error',
+      })
+      return
     }
+
+    if (!order.items || order.items.length === 0) {
+      toast({
+        message: language === 'uz' ? 'Bo‘sh buyurtma uchun WhatsApp ochib bo‘lmaydi.' : 'Нельзя открыть WhatsApp для пустого заказа.',
+        type: 'error',
+      })
+      return
+    }
+
+    const whatsappUrl = generateAdminWhatsAppUrl(order, language === 'uz' ? 'uz' : 'ru')
+
+    if (!whatsappUrl) {
+      toast({
+        message:
+          language === 'uz'
+            ? 'Mijozning WhatsApp raqami noto‘g‘ri yoki yo‘q.'
+            : 'У клиента отсутствует или некорректный номер WhatsApp.',
+        type: 'error',
+      })
+      return
+    }
+
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
   }
 
   // CRUD handlers for Products
@@ -941,7 +974,7 @@ export function Admin() {
                       onClick={() => setDateRange({ start: '', end: '' })}
                       className="mt-1 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      Clear dates
+                      {t('clearDates', language)}
                     </button>
                   )}
                 </div>
@@ -956,7 +989,7 @@ export function Admin() {
                 >
                   {t('allStatuses', language)}
                 </Button>
-                {statusTimeline.map((status) => (
+                {statusFilterOptions.map((status) => (
                   <Button
                     key={status}
                     variant={statusFilter === status ? 'default' : 'outline'}
@@ -992,11 +1025,14 @@ export function Admin() {
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
-                          size="sm"
-                          onClick={() => handleContactCustomer(order.id)}
+                          size="icon"
+                          title={t('contactCustomer', language)}
+                          aria-label={t('contactCustomer', language)}
+                          onClick={() => handleContactCustomer(order)}
                         >
-                          <Send className="w-4 h-4 mr-2" />
-                          {t('contactCustomer', language)}
+                          <span className="text-emerald-600">
+                            <WhatsAppIcon />
+                          </span>
                         </Button>
                         <Badge className={statusColors[order.status] || 'bg-gray-100 text-gray-800'}>
                           {t(order.status, language)}
@@ -1078,7 +1114,7 @@ export function Admin() {
                 <CardTitle>{t('products', language)}</CardTitle>
                 <Button onClick={() => handleOpenProductDialog()}>
                   <Plus className="w-4 h-4 mr-2" />
-                  {t('add', language)} {t('products', language)}
+                  {t('common.addProduct', language)}
                 </Button>
               </div>
             </CardHeader>
@@ -1154,9 +1190,9 @@ export function Admin() {
           <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{editingProduct ? t('edit', language) : t('add', language)} {t('products', language)}</DialogTitle>
+                <DialogTitle>{editingProduct ? t('common.editProduct', language) : t('common.addProduct', language)}</DialogTitle>
                 <DialogDescription>
-                  {editingProduct ? t('editProductDesc', language) || 'Edit product information' : t('addProductDesc', language) || 'Add a new product to the catalog'}
+                  {editingProduct ? t('editProductDesc', language) : t('addProductDesc', language)}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -1296,7 +1332,7 @@ export function Admin() {
                 <CardTitle>{t('categories', language)}</CardTitle>
                 <Button onClick={() => handleOpenCategoryDialog()}>
                   <Plus className="w-4 h-4 mr-2" />
-                  {t('add', language)} {t('categories', language)}
+                  {t('common.addCategory', language)}
                 </Button>
               </div>
             </CardHeader>
@@ -1359,9 +1395,9 @@ export function Admin() {
           <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingCategory ? t('edit', language) : t('add', language)} {t('categories', language)}</DialogTitle>
+                <DialogTitle>{editingCategory ? t('common.editCategory', language) : t('common.addCategory', language)}</DialogTitle>
                 <DialogDescription>
-                  {editingCategory ? t('editCategoryDesc', language) || 'Edit category information' : t('addCategoryDesc', language) || 'Add a new category'}
+                  {editingCategory ? t('editCategoryDesc', language) : t('addCategoryDesc', language)}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -1428,7 +1464,7 @@ export function Admin() {
                 <CardTitle>{t('suppliers', language)}</CardTitle>
                 <Button onClick={() => handleOpenSupplierDialog()}>
                   <Plus className="w-4 h-4 mr-2" />
-                  {t('add', language)} {t('suppliers', language)}
+                  {t('common.addSupplier', language)}
                 </Button>
               </div>
             </CardHeader>
@@ -1494,9 +1530,9 @@ export function Admin() {
           <Dialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingSupplier ? t('edit', language) : t('add', language)} {t('suppliers', language)}</DialogTitle>
+                <DialogTitle>{editingSupplier ? t('common.editSupplier', language) : t('common.addSupplier', language)}</DialogTitle>
                 <DialogDescription>
-                  {editingSupplier ? t('editSupplierDesc', language) || 'Edit supplier information' : t('addSupplierDesc', language) || 'Add a new supplier'}
+                  {editingSupplier ? t('editSupplierDesc', language) : t('addSupplierDesc', language)}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">

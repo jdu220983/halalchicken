@@ -23,6 +23,7 @@ from .views import (
     SupplierViewSet,
     admin_telegram_contact,
     telegram_message_template,
+    whatsapp_message_template,
 )
 
 router = DefaultRouter()
@@ -46,6 +47,11 @@ urlpatterns = [
         "telegram/message-template/",
         telegram_message_template,
         name="telegram_template",
+    ),
+    path(
+        "whatsapp/message-template/",
+        whatsapp_message_template,
+        name="whatsapp_template",
     ),
     # Admin async jobs
     path(

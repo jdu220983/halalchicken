@@ -120,8 +120,14 @@ export async function removeCartItem(product_id: number) {
   return data
 }
 
-export async function createOrder() {
-  const { data } = await api.post('/orders/')
+export interface CreateOrderPayload {
+  fio?: string
+  phone?: string
+  address?: string
+}
+
+export async function createOrder(payload?: CreateOrderPayload) {
+  const { data } = await api.post('/orders/', payload ?? {})
   return data as { id: number; order_number: string }
 }
 

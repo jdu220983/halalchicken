@@ -16,6 +16,17 @@ export const translations = {
     cart: 'Savat',
     profile: 'Profil',
 
+    common: {
+      add: 'Qo‘shish',
+      edit: 'Tahrirlash',
+      addProduct: 'Mahsulot qo‘shish',
+      addCategory: 'Kategoriya qo‘shish',
+      addSupplier: 'Yetkazib beruvchi qo‘shish',
+      editProduct: 'Mahsulotni tahrirlash',
+      editCategory: 'Kategoriyani tahrirlash',
+      editSupplier: 'Yetkazib beruvchini tahrirlash',
+    },
+
     // Footer
     footer_description: 'Sifatli halol tovuq mahsulotlari yetkazib beruvchisi',
     quick_links: 'Tezkor havolalar',
@@ -33,7 +44,7 @@ export const translations = {
       "Ishonchli ta'minotchilardan to'g'ridan-to'g'ri halol tovuq mahsulotlari. Sifat va halollik kafolati.",
     browseProducts: "Mahsulotlarni Ko'rish",
     contactTelegram: "Telegram orqali bog'lanish",
-    contactWhatsApp: "Telegram orqali bog'lanish",
+    contactWhatsApp: "WhatsApp orqali bog'lanish",
 
     // Trust Section
     whyChoose: "Nega Halal Chicken'ni Tanlash Kerak?",
@@ -61,6 +72,8 @@ export const translations = {
     allSuppliers: "Barcha ta'minotchilar",
     searchProducts: 'Mahsulotlarni qidirish...',
     addToCart: "Savatga qo'shish",
+    nextStep: 'Keyingi',
+    imageFile: 'Mahsulot rasmi',
     inStock: 'Mavjud',
     outOfStock: 'Mavjud emas',
     kg: 'kg',
@@ -94,11 +107,18 @@ export const translations = {
     status: 'Holat',
     date: 'Sana',
     items: 'Mahsulotlar',
+    searchByOrderNumber: 'Buyurtma raqami bo‘yicha qidirish',
+    searchByCustomer: 'Mijoz bo‘yicha qidirish',
+    nameOrPhone: 'Ism yoki telefon',
+    dateRange: 'Sana oralig‘i',
+    clearDates: 'Sanalarni tozalash',
 
     // Order Status
     Received: 'Qabul qilindi',
     Confirmed: 'Tasdiqlandi',
     Shipped: 'Jo‘natildi',
+    Cancelled: 'Bekor qilindi',
+    cancelled: 'Bekor qilindi',
 
     // Auth
     email: 'Email',
@@ -213,6 +233,17 @@ export const translations = {
     cart: 'Корзина',
     profile: 'Профиль',
 
+    common: {
+      add: 'Добавить',
+      edit: 'Редактировать',
+      addProduct: 'Добавить товар',
+      addCategory: 'Добавить категорию',
+      addSupplier: 'Добавить поставщика',
+      editProduct: 'Редактировать товар',
+      editCategory: 'Редактировать категорию',
+      editSupplier: 'Редактировать поставщика',
+    },
+
     // Footer
     footer_description: 'Поставщик качественных халяльных куриных продуктов',
     quick_links: 'Быстрые ссылки',
@@ -230,7 +261,7 @@ export const translations = {
       'Халяльные куриные продукты напрямую от надежных поставщиков. Гарантия качества и халяльности.',
     browseProducts: 'Просмотреть товары',
     contactTelegram: 'Связаться через Telegram',
-    contactWhatsApp: 'Связаться через Telegram',
+    contactWhatsApp: 'Связаться через WhatsApp',
 
     // Trust Section
     whyChoose: 'Почему выбрать Halal Chicken?',
@@ -257,6 +288,8 @@ export const translations = {
     allSuppliers: 'Все поставщики',
     searchProducts: 'Поиск товаров...',
     addToCart: 'В корзину',
+    nextStep: 'Следующий',
+    imageFile: 'Изображение товара',
     inStock: 'В наличии',
     outOfStock: 'Нет в наличии',
     kg: 'кг',
@@ -290,11 +323,18 @@ export const translations = {
     status: 'Статус',
     date: 'Дата',
     items: 'Товары',
+    searchByOrderNumber: 'Поиск по номеру заказа',
+    searchByCustomer: 'Поиск по клиенту',
+    nameOrPhone: 'Имя или телефон',
+    dateRange: 'Диапазон дат',
+    clearDates: 'Очистить даты',
 
     // Order Status
     Received: 'Принят',
     Confirmed: 'Подтвержден',
     Shipped: 'Отправлен',
+    Cancelled: 'Отменено',
+    cancelled: 'Отменено',
 
     // Auth
     email: 'Email',
@@ -400,5 +440,15 @@ export function t(key: string, lang: Language = 'uz'): string {
   for (const k of keys) {
     value = value?.[k]
   }
-  return value || key
+  if (value) return value
+
+  if (lang !== 'ru') {
+    let fallback: any = translations.ru
+    for (const k of keys) {
+      fallback = fallback?.[k]
+    }
+    if (fallback) return fallback
+  }
+
+  return key
 }
