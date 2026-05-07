@@ -1,5 +1,6 @@
 import logging
 import os
+import urllib.parse
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -42,8 +43,6 @@ from .serializers import (
     SupplierSerializer,
     UserSerializer,
 )
-
-import urllib.parse
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -437,32 +436,36 @@ class AdminOrdersViewSet(viewsets.ReadOnlyModelViewSet):
         """Override list to add detailed logging"""
         user = request.user
         logger.info(
-            f"Admin orders list requested",
+            "Admin orders list requested",
             extra={
                 "user_id": user.id,
-                "user_role": user.role if hasattr(user, 'role') else 'unknown',
+                "user_role": user.role if hasattr(user, "role") else "unknown",
                 "query_params": dict(request.query_params),
-            }
+            },
         )
-        
+
         try:
             response = super().list(request, *args, **kwargs)
             logger.info(
-                f"Admin orders list returned successfully",
+                "Admin orders list returned successfully",
                 extra={
                     "user_id": user.id,
-                    "count": len(response.data.get('results', [])) if hasattr(response.data, 'get') else 0,
-                }
+                    "count": (
+                        len(response.data.get("results", []))
+                        if hasattr(response.data, "get")
+                        else 0
+                    ),
+                },
             )
             return response
-        except Exception as e:
+        except Exception as exc:
             logger.error(
-                f"Admin orders list failed: {str(e)}",
+                f"Admin orders list failed: {exc}",
                 extra={
                     "user_id": user.id,
-                    "error_type": type(e).__name__,
+                    "error_type": type(exc).__name__,
                 },
-                exc_info=True
+                exc_info=True,
             )
             raise
 
@@ -630,18 +633,21 @@ def whatsapp_message_template(request):
     for it in order.items.all():
         prod_name = it.product.name_ru or it.product.name_uz or f"Товар #{it.product_id}"
         # Use simple multiplication sign
-        lines.append(f"- {prod_name} ×{int(it.quantity) if float(it.quantity).is_integer() else it.quantity}")
+        quantity = int(it.quantity) if float(it.quantity).is_integer() else it.quantity
+        lines.append(f"- {prod_name} ×{quantity}")
 
-    lines.extend([
-        "",
-        f"Общая сумма: {total_text}",
-        "",
-        f"Имя клиента: {customer_name}",
-        f"Телефон: {customer.phone or 'N/A'}",
-        f"Адрес: {customer.address or 'N/A'}",
-        "",
-        "Спасибо!",
-    ])
+    lines.extend(
+        [
+            "",
+            f"Общая сумма: {total_text}",
+            "",
+            f"Имя клиента: {customer_name}",
+            f"Телефон: {customer.phone or 'N/A'}",
+            f"Адрес: {customer.address or 'N/A'}",
+            "",
+            "Спасибо!",
+        ]
+    )
 
     message_text = "\n".join(lines)
 
@@ -666,7 +672,11 @@ def whatsapp_message_template(request):
         "order_number": order.order_number,
         "created_at": order.created_at,
         "items": [
-            {"product_id": it.product_id, "name_ru": it.product.name_ru, "quantity": float(it.quantity)}
+            {
+                "product_id": it.product_id,
+                "name_ru": it.product.name_ru,
+                "quantity": float(it.quantity),
+            }
             for it in order.items.all()
         ],
         "customer": {

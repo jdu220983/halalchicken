@@ -3,7 +3,7 @@
  * Handles all order-related API calls with proper error handling and logging
  */
 
-import { apiGetPaginated, apiPost, PaginatedResponse } from './client'
+import { apiGet, apiGetPaginated, apiPost, PaginatedResponse } from './client'
 import { ApiError } from './errors'
 import { logger } from './logger'
 
@@ -104,7 +104,7 @@ export async function updateOrderStatus(
       newStatus: status,
     })
 
-    const response = await apiPost(`/orders/${orderId}/status/`, { status })
+    const response = await apiPost<AdminOrder>(`/orders/${orderId}/status/`, { status })
 
     logger.info('Order status updated successfully', {
       orderId,
@@ -142,7 +142,12 @@ export async function fetchAdminSummary(): Promise<{
   try {
     logger.info('Fetching admin summary')
 
-    const response = await apiGetPaginated('/admin/summary/', {})
+    const response = await apiGet<{
+      today_orders: number
+      new_orders: number
+      total_products: number
+      total_customers: number
+    }>('/admin/summary/')
 
     logger.info('Admin summary fetched successfully', response)
 

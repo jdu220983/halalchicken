@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useCallback } from 'react'
-import { useAdminOrders, type UseAdminOrdersReturn } from '@/lib/hooks/useAdminOrders'
-import { ApiError } from '@/lib/api-service'
+import { useAdminOrders } from '@/lib/hooks/useAdminOrders'
 import { ruMessages, getUserFriendlyErrorMessage, formatDateRu, formatStatusRu } from '@/lib/api-service/messages-ru'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,10 +19,9 @@ import { MoreVertical, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 
 interface AdminOrdersListProps {
   onStatusChange?: (orderId: number, newStatus: string) => Promise<void>
-  language?: string
 }
 
-export function AdminOrdersList({ onStatusChange, language = 'ru' }: AdminOrdersListProps) {
+export function AdminOrdersList({ onStatusChange }: AdminOrdersListProps) {
   const { orders, loading, error, totalCount, page, pageSize, fetchOrders, retry, setPage, clearError } = useAdminOrders()
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [orderSearch, setOrderSearch] = useState('')

@@ -16,7 +16,7 @@ from .models import (
 
 @admin.register(User)
 class UserAdmin(DjangoUserAdmin):
-    fieldsets = DjangoUserAdmin.fieldsets + (
+    fieldsets = list(DjangoUserAdmin.fieldsets or []) + [
         (
             "Profile",
             {
@@ -34,7 +34,7 @@ class UserAdmin(DjangoUserAdmin):
                 )
             },
         ),
-    )
+    ]
 
 
 admin.site.register(Category)

@@ -4,7 +4,6 @@ import { generateCustomerWhatsAppUrl } from '../lib/whatsapp'
 
 export default function Success() {
   const loc = useLocation() as any
-  const telegramLink = loc?.state?.telegramLink as string | undefined
   const order = loc?.state?.order
 
   // Auto-open WhatsApp in a new tab when order exists (keeps UI unchanged)

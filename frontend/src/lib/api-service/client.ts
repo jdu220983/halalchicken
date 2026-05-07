@@ -11,7 +11,7 @@ import axios, {
   AxiosResponse,
 } from 'axios'
 import { getAccessToken } from '../token-storage'
-import { ApiError, isRetryableError, formatErrorForLog } from './errors'
+import { ApiError, isRetryableError } from './errors'
 import { logger } from './logger'
 
 interface RetryConfig {

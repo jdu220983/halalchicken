@@ -13,6 +13,7 @@ extend-ignore = ["E203"]
 python_version = "3.12"
 plugins = ["mypy_django_plugin.main"]
 ignore_missing_imports = true
+explicit_package_bases = true
 
 [tool.django-stubs]
 django_settings_module = "core.settings.dev"

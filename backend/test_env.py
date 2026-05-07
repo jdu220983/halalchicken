@@ -24,8 +24,8 @@ print(f"Password: {repr(password)}")
 print(f"Host: {repr(host)}")
 print(f"Port: {repr(port)}")
 
-print(f"\nPassword bytes: {password.encode('utf-8', errors='replace')}")
-print(f"User bytes: {user.encode('utf-8', errors='replace')}")
+print(f"\nPassword bytes: {password.encode('utf-8', errors='replace')!r}")
+print(f"User bytes: {user.encode('utf-8', errors='replace')!r}")
 
 # Try to build DSN like psycopg2 does
 try:
@@ -45,6 +45,6 @@ try:
     print(f"\nDSN: {dsn}")
     print(f"DSN at position 61: {dsn[61] if len(dsn) > 61 else 'N/A'}")
     dsn_bytes = dsn[55:70].encode("utf-8", errors="replace") if len(dsn) > 61 else "N/A"
-    print(f"DSN bytes around position 61: {dsn_bytes}")
+    print(f"DSN bytes around position 61: {dsn_bytes!r}")
 except Exception as e:
     print(f"Error building DSN: {e}")

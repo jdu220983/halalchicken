@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import timedelta
 from pathlib import Path
+from typing import Any, cast
 
 import dj_database_url
 from django.utils.log import DEFAULT_LOGGING
@@ -96,6 +97,7 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 # Database configuration - PostgreSQL only
 # SQLite is only allowed for pytest with explicit override
+DATABASES: dict[str, dict[str, Any]]
 if os.getenv("USE_SQLITE_FOR_TESTS") == "1":
     DATABASES = {
         "default": {
@@ -105,15 +107,18 @@ if os.getenv("USE_SQLITE_FOR_TESTS") == "1":
     }
 elif os.getenv("DATABASE_URL"):
     # Use DATABASE_URL if provided (helps bypass some encoding issues on Windows)
-    DATABASES = {
-        "default": dj_database_url.config(
+    default_database = cast(
+        dict[str, Any],
+        dj_database_url.config(
             default=os.getenv("DATABASE_URL"),
             conn_max_age=600,
             conn_health_checks=True,
-        )
-    }
+        ),
+    )
+    DATABASES = {"default": default_database}
     # Ensure client_encoding is UTF8
-    DATABASES["default"].setdefault("OPTIONS", {})["client_encoding"] = "UTF8"
+    database_options = cast(dict[str, Any], default_database.setdefault("OPTIONS", {}))
+    database_options["client_encoding"] = "UTF8"
 else:
     # Fallback static PostgreSQL config
     DATABASES = {

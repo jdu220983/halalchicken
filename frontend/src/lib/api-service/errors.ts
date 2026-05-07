@@ -3,7 +3,7 @@
  * Supports detailed logging and user-friendly messages
  */
 
-import { AxiosError, AxiosResponse } from 'axios'
+import { AxiosError } from 'axios'
 
 export type HttpErrorCode = 400 | 401 | 403 | 404 | 429 | 500 | 502 | 503 | 504
 
@@ -70,7 +70,7 @@ export class ApiError extends Error {
     }
   }
 
-  static fromAxiosError(error: AxiosError<ApiErrorResponse>, context?: string): ApiError {
+  static fromAxiosError(error: AxiosError<ApiErrorResponse>): ApiError {
     const status = error.response?.status || 0
     const data = error.response?.data
     const config = error.config
@@ -204,7 +204,7 @@ export class ApiError extends Error {
     )
   }
 
-  static unknown(error: unknown, context?: string): ApiError {
+  static unknown(error: unknown): ApiError {
     const message = error instanceof Error ? error.message : String(error)
     return new ApiError(
       0,
