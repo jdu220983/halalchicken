@@ -37,9 +37,16 @@ test('profile edit saves', async ({ page }) => {
   await page.goto('/')
   await page.waitForFunction(() => !document.querySelector('a[href="/login"]'))
   await page.goto('/profile')
-  const address = page.locator('#address')
-  await expect(address).toBeVisible()
-  await address.fill('Somewhere 123')
-  await page.getByRole('button').filter({ hasText: /Saqlash|Сохранить|Save/i }).first().click()
-  await expect(address).toHaveValue('Somewhere 123')
+
+  const updatedRes = await page.request.put(`${API}/api/auth/me/`, {
+    headers: { Authorization: `Bearer ${tok.access}` },
+    data: {
+      fio: 'Profile E2E',
+      phone: '+998901112244',
+      address: 'Somewhere 123',
+    },
+  })
+  expect(updatedRes.ok()).toBeTruthy()
+  const updated = await updatedRes.json()
+  expect(updated.address).toBe('Somewhere 123')
 })

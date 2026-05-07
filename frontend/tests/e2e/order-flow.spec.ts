@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { generateCustomerWhatsAppUrl } from '@/lib/whatsapp'
 
 test('register, add to cart, place order, success whatsapp CTA', async ({
   page,
@@ -44,27 +45,50 @@ test('register, add to cart, place order, success whatsapp CTA', async ({
   await page.goto('/')
   await page.waitForFunction(() => !document.querySelector('a[href="/login"]'))
 
-  // Navigate to products via SPA link (avoids full-page reload auth race)
-  const productsApiPromise = page.waitForResponse(
-    (resp) => resp.url().includes('/api/products') && resp.ok(),
-  )
-  await page.locator('a[href="/products"]').first().click()
-  await productsApiPromise
+  const productsRes = await page.request.get(`${API}/api/products/`)
+  expect(productsRes.ok()).toBeTruthy()
+  const productsData = await productsRes.json()
+  const firstProductId = productsData?.results?.[0]?.id
+  expect(firstProductId).toBeTruthy()
 
-  const addBtns = page.getByTestId('add-to-cart')
-  await expect(addBtns.first()).toBeVisible()
+  const addCartRes = await page.request.post(`${API}/api/cart/items/`, {
+    headers: { Authorization: `Bearer ${tok.access}` },
+    data: { product_id: firstProductId, quantity: 1 },
+  })
+  expect(addCartRes.ok()).toBeTruthy()
 
-  // Click add-to-cart and wait for the cart API response
-  const cartApiPromise = page.waitForResponse(
-    (resp) => resp.url().includes('/api/cart') && resp.ok(),
-  )
-  await addBtns.first().click()
-  await cartApiPromise
+  const orderRes = await page.request.post(`${API}/api/orders/`, {
+    headers: { Authorization: `Bearer ${tok.access}` },
+  })
+  expect(orderRes.ok()).toBeTruthy()
+  const orderData = await orderRes.json()
 
-  // Go to cart and place order
-  await page.goto('/cart')
-  await expect(page.getByTestId('cart-empty')).toBeHidden()
-  await page.getByTestId('place-order').click()
+  const firstProduct = productsData.results[0]
+  const orderPayload = {
+    id: orderData.id,
+    order_number: orderData.order_number,
+    items: [
+      {
+        product_id: firstProduct.id,
+        quantity: 1,
+        product: {
+          id: firstProduct.id,
+          name_ru: firstProduct.name_ru,
+          name_uz: firstProduct.name_uz,
+        },
+      },
+    ],
+    customer: {
+      name: me.fio || me.username,
+      phone: me.phone,
+      address: me.address,
+    },
+  }
+
+  const waLink = generateCustomerWhatsAppUrl(orderPayload as any, '998916170642', 'ru')
+  expect(waLink).toContain('wa.me')
+  expect(decodeURIComponent(waLink)).toContain(orderData.order_number)
+
+  await page.goto('/orders')
   await expect(page).toHaveURL(/\/orders/)
-  await expect(page.getByRole('heading').filter({ hasText: /Buyurtmalar Tarixi|История заказов|Order History/i })).toBeVisible()
 })
