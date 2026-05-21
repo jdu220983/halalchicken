@@ -3,8 +3,10 @@ import type { Order } from '@/lib/types'
 export interface AdminStats {
   today_orders: number
   new_orders: number
+  cancelled_orders?: number
   total_products: number
   total_customers: number
+  status_stats?: Record<string, number>
 }
 
 export interface AsyncJob {

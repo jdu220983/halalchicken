@@ -21,8 +21,7 @@ from .views import (
     ProductViewSet,
     RegisterViewSet,
     SupplierViewSet,
-    admin_telegram_contact,
-    telegram_message_template,
+    admin_whatsapp_contact,
     whatsapp_message_template,
 )
 
@@ -44,20 +43,15 @@ urlpatterns = [
     path("auth/change-password/", ChangePasswordView.as_view(), name="change_password"),
     path("auth/delete-account/", DeleteAccountView.as_view(), name="delete_account"),
     path(
-        "telegram/message-template/",
-        telegram_message_template,
-        name="telegram_template",
-    ),
-    path(
         "whatsapp/message-template/",
         whatsapp_message_template,
         name="whatsapp_template",
     ),
     # Admin async jobs
     path(
-        "admin/orders/<int:order_id>/telegram-contact/",
-        admin_telegram_contact,
-        name="admin_telegram_contact",
+        "admin/orders/<int:order_id>/whatsapp-contact/",
+        admin_whatsapp_contact,
+        name="admin_whatsapp_contact",
     ),
     path(
         "admin/export/orders/",

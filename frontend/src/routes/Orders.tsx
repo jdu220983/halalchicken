@@ -8,13 +8,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ShoppingBag, Package, Clock, Send } from "lucide-react"
 import { formatDateTime } from "@/lib/utils"
-import { generateCustomerWhatsAppUrl } from '@/lib/whatsapp'
+import { generateCustomerWhatsAppUrl, getAdminWhatsAppPhone } from '@/lib/whatsapp'
 import { useToast } from "@/lib/toast"
 
 const statusColors: Record<OrderStatus, string> = {
   Received: "bg-blue-500",
   Confirmed: "bg-purple-500",
   Shipped: "bg-green-500",
+  Cancelled: "bg-red-500",
 }
 
 export function Orders() {
@@ -72,8 +73,11 @@ export function Orders() {
           address: user?.address || null,
         },
       }
-      const businessNum = (import.meta.env && (import.meta.env.NEXT_PUBLIC_ADMIN_WHATSAPP || import.meta.env.VITE_WHATSAPP_NUMBER || import.meta.env.NEXT_PUBLIC_WHATSAPP_NUMBER)) || '998916170642'
-      const wa = generateCustomerWhatsAppUrl(orderPayload as any, businessNum, language === 'uz' ? 'uz' : 'ru')
+      const wa = generateCustomerWhatsAppUrl(
+        orderPayload as any,
+        getAdminWhatsAppPhone(),
+        language,
+      )
       if (wa) window.open(wa, '_blank', 'noopener,noreferrer')
     } catch (error) {
       console.error("Failed to generate contact message:", error)

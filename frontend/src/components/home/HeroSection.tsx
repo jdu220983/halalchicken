@@ -3,10 +3,11 @@ import { ChefHat, ArrowRight } from "lucide-react"
 import { useAuth } from "@/lib/context"
 import { t } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
+import { getAdminWhatsAppPhone } from "@/lib/whatsapp"
 
 export function HeroSection() {
   const { language } = useAuth()
-  const phoneNumber = "998916170642"
+  const phoneNumber = getAdminWhatsAppPhone() || "998916170642"
   const message = "Здравствуйте! Я хочу сделать заказ"
   const encodedMessage = encodeURIComponent(message)
 
@@ -18,7 +19,7 @@ export function HeroSection() {
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
               <ChefHat className="h-5 w-5 text-primary" />
-              <span className="text-sm font-medium">100% {t("halalCertified", language)}</span>
+              <span className="text-sm font-medium">{t("halalCertified", language)}</span>
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">

@@ -1,17 +1,19 @@
 import { useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
-import { generateCustomerWhatsAppUrl } from '../lib/whatsapp'
+import { useAuth } from '../lib/context'
+import { generateCustomerWhatsAppUrl, getAdminWhatsAppPhone } from '../lib/whatsapp'
 
 export default function Success() {
+  const { language } = useAuth()
   const loc = useLocation() as any
   const order = loc?.state?.order
 
   // Auto-open WhatsApp in a new tab when order exists (keeps UI unchanged)
   useEffect(() => {
     try {
-      const business = (import.meta.env && (import.meta.env.NEXT_PUBLIC_ADMIN_WHATSAPP || import.meta.env.VITE_WHATSAPP_NUMBER || import.meta.env.NEXT_PUBLIC_WHATSAPP_NUMBER)) || '998916170642'
+      const business = getAdminWhatsAppPhone() || '998916170642'
       if (order && order.items && order.items.length > 0) {
-        const wa = generateCustomerWhatsAppUrl(order, business, 'ru', loc?.state?.total)
+        const wa = generateCustomerWhatsAppUrl(order, business, language, loc?.state?.total)
         if (wa) {
           window.open(wa, '_blank', 'noopener,noreferrer')
         }
@@ -21,10 +23,10 @@ export default function Success() {
       // eslint-disable-next-line no-console
       console.error('WhatsApp auto-open failed', err)
     }
-  }, [order, loc?.state])
+  }, [order, loc?.state, language])
 
-  const business = (import.meta.env && (import.meta.env.NEXT_PUBLIC_ADMIN_WHATSAPP || import.meta.env.VITE_WHATSAPP_NUMBER || import.meta.env.NEXT_PUBLIC_WHATSAPP_NUMBER)) || '998916170642'
-  const waLink = order ? generateCustomerWhatsAppUrl(order, business, 'ru', loc?.state?.total) : null
+  const business = getAdminWhatsAppPhone() || '998916170642'
+  const waLink = order ? generateCustomerWhatsAppUrl(order, business, language, loc?.state?.total) : null
 
   return (
     <div>

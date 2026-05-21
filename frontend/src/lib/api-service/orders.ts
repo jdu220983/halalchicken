@@ -10,7 +10,7 @@ import { logger } from './logger'
 export interface AdminOrder {
   id: number
   order_number: string
-  status: 'Received' | 'Confirmed' | 'Shipped'
+  status: 'Received' | 'Confirmed' | 'Shipped' | 'Cancelled'
   created_at: string
   updated_at: string
   user: {
@@ -136,8 +136,10 @@ export async function updateOrderStatus(
 export async function fetchAdminSummary(): Promise<{
   today_orders: number
   new_orders: number
+  cancelled_orders?: number
   total_products: number
   total_customers: number
+  status_stats?: Record<string, number>
 }> {
   try {
     logger.info('Fetching admin summary')
@@ -145,8 +147,10 @@ export async function fetchAdminSummary(): Promise<{
     const response = await apiGet<{
       today_orders: number
       new_orders: number
+      cancelled_orders?: number
       total_products: number
       total_customers: number
+      status_stats?: Record<string, number>
     }>('/admin/summary/')
 
     logger.info('Admin summary fetched successfully', response)

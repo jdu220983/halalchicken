@@ -43,7 +43,6 @@ export const translations = {
     halalChickenDesc:
       "Ishonchli ta'minotchilardan to'g'ridan-to'g'ri halol tovuq mahsulotlari. Sifat va halollik kafolati.",
     browseProducts: "Mahsulotlarni Ko'rish",
-    contactTelegram: "Telegram orqali bog'lanish",
     contactWhatsApp: "WhatsApp orqali bog'lanish",
 
     // Trust Section
@@ -74,8 +73,11 @@ export const translations = {
     addToCart: "Savatga qo'shish",
     nextStep: 'Keyingi',
     imageFile: 'Mahsulot rasmi',
+    availability: 'Mavjudlik',
     inStock: 'Mavjud',
     outOfStock: 'Mavjud emas',
+    errorFetchingProducts: 'Mahsulotlarni yuklashda xatolik',
+    errorFetchingFilters: 'Filtrlarni yuklashda xatolik',
     kg: 'kg',
     quantity: 'Miqdor',
 
@@ -91,12 +93,7 @@ export const translations = {
     orderPlaced: 'Buyurtma qabul qilindi!',
     orderSuccess: 'Sizning buyurtmangiz muvaffaqiyatli qabul qilindi.',
     orderNumber: 'Buyurtma raqami',
-    contactMessageIntro:
-      "Assalomu alaykum! Buyurtmangiz bo'yicha Telegram xabari tayyor. Admin bilan shu orqali bog'laning.",
-    contactViaTelegram: "Telegram orqali bog'lanish",
-    placeOrderToContact:
-      'Telegram xabarini olish uchun avval buyurtma yarating.',
-
+    cancelledOrders: 'Bekor qilingan buyurtmalar',
     // Orders
     orderHistory: 'Buyurtmalar Tarixi',
     noOrders: "Hali buyurtmalaringiz yo'q",
@@ -206,7 +203,7 @@ export const translations = {
     addSupplierDesc: "Yangi ta'minotchi qo'shish",
     editSupplierDesc: "Ta'minotchi ma'lumotlarini tahrirlash",
     pleaseLogin: 'Iltimos, tizimga kiring',
-    noPricesShown: 'Narxlar Telegram orqali muhokama qilinadi',
+    noPricesShown: 'Narxlar WhatsApp orqali muhokama qilinadi',
     personalInfo: "Shaxsiy ma'lumotlar",
     accessDenied: "Ruxsat yo'q. Faqat adminlar kirishi mumkin.",
     accountInfo: "Hisob ma'lumotlari",
@@ -260,7 +257,6 @@ export const translations = {
     halalChickenDesc:
       'Халяльные куриные продукты напрямую от надежных поставщиков. Гарантия качества и халяльности.',
     browseProducts: 'Просмотреть товары',
-    contactTelegram: 'Связаться через Telegram',
     contactWhatsApp: 'Связаться через WhatsApp',
 
     // Trust Section
@@ -290,8 +286,11 @@ export const translations = {
     addToCart: 'В корзину',
     nextStep: 'Следующий',
     imageFile: 'Изображение товара',
+    availability: 'Наличие',
     inStock: 'В наличии',
     outOfStock: 'Нет в наличии',
+    errorFetchingProducts: 'Ошибка загрузки товаров',
+    errorFetchingFilters: 'Ошибка загрузки фильтров',
     kg: 'кг',
     quantity: 'Количество',
 
@@ -307,12 +306,7 @@ export const translations = {
     orderPlaced: 'Заказ размещен!',
     orderSuccess: 'Ваш заказ успешно размещен.',
     orderNumber: 'Номер заказа',
-    contactMessageIntro:
-      'Здравствуйте! Готов текст сообщения для Telegram. Свяжитесь с администратором через него.',
-    contactViaTelegram: 'Связаться через Telegram',
-    placeOrderToContact:
-      'Сначала оформите заказ, чтобы получить текст сообщения.',
-
+    cancelledOrders: 'Отмененные заказы',
     // Orders
     orderHistory: 'История заказов',
     noOrders: 'У вас пока нет заказов',
@@ -419,7 +413,7 @@ export const translations = {
     addSupplierDesc: 'Добавить нового поставщика',
     editSupplierDesc: 'Редактировать информацию о поставщике',
     pleaseLogin: 'Пожалуйста, войдите в систему',
-    noPricesShown: 'Цены обсуждаются через Telegram',
+    noPricesShown: 'Цены обсуждаются через WhatsApp',
     personalInfo: 'Личная информация',
     accessDenied: 'Доступ запрещен. Только для администраторов.',
     accountInfo: 'Информация об аккаунте',
@@ -429,26 +423,41 @@ export const translations = {
     statusFilter: 'Фильтр статусов',
     allStatuses: 'Все статусы',
   },
+  en: {
+    contactWhatsApp: 'Contact via WhatsApp',
+    active: 'Active',
+    inactive: 'Inactive',
+    availability: 'Availability',
+    cancelledOrders: 'Cancelled orders',
+    status: 'Status',
+    inStock: 'In stock',
+    outOfStock: 'Out of stock',
+    errorFetchingProducts: 'Failed to load products',
+    errorFetchingFilters: 'Failed to load filters',
+    Received: 'Received',
+    Confirmed: 'Confirmed',
+    Shipped: 'Shipped',
+    Cancelled: 'Cancelled',
+    cancelled: 'Cancelled',
+  },
 }
 
-export type Language = 'uz' | 'ru'
+export type Language = 'uz' | 'ru' | 'en'
 
 export function t(key: string, lang: Language = 'uz'): string {
   const keys = key.split('.')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let value: any = translations[lang]
+  let value: any = translations[lang] || translations.ru
   for (const k of keys) {
     value = value?.[k]
   }
   if (value) return value
 
-  if (lang !== 'ru') {
-    let fallback: any = translations.ru
-    for (const k of keys) {
-      fallback = fallback?.[k]
-    }
-    if (fallback) return fallback
+  let fallback: any = translations.ru
+  for (const k of keys) {
+    fallback = fallback?.[k]
   }
+  if (fallback) return fallback
 
   return key
 }

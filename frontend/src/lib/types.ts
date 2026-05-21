@@ -1,6 +1,6 @@
 export type UserRole = 'CUSTOMER' | 'ADMIN' | 'SUPERADMIN'
 export type UserType = 'INDIVIDUAL' | 'LEGAL'
-export type OrderStatus = 'Received' | 'Confirmed' | 'Shipped'
+export type OrderStatus = 'Received' | 'Confirmed' | 'Shipped' | 'Cancelled'
 
 export interface User {
   id: string
@@ -29,6 +29,7 @@ export interface Product {
   image_url: string
   description: string
   status: boolean
+  is_in_stock: boolean
   created_at: string
 }
 
@@ -82,6 +83,8 @@ export interface Order {
 export interface AdminSummary {
   today_orders: number
   new_orders: number
+  cancelled_orders?: number
   total_products: number
   total_customers: number
+  status_stats?: Record<string, number>
 }

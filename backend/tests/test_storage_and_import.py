@@ -95,6 +95,51 @@ def test_product_image_validation(client):
 
 
 @pytest.mark.django_db
+def test_product_update_without_reuploading_image(client):
+    from django.contrib.auth import get_user_model
+
+    from shop.models import Category, Product, Supplier
+
+    cat = Category.objects.create(name_uz="C", name_ru="C")
+    sup = Supplier.objects.create(name="S")
+
+    U = get_user_model()
+    U.objects.create_user(username="prodadmin", password="Pass123!", role="ADMIN")
+    login = client.post(
+        "/api/auth/login/",
+        {"username": "prodadmin", "password": "Pass123!"},
+        content_type="application/json",
+    )
+    assert login.status_code == 200
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {login.json()['access']}"
+
+    product = Product.objects.create(
+        name_uz="Old",
+        name_ru="Old",
+        category=cat,
+        supplier=sup,
+        image_url="https://example.com/old.jpg",
+    )
+
+    resp = client.patch(
+        f"/api/products/{product.id}/",
+        {
+            "category_id": cat.id,
+            "supplier_id": sup.id,
+            "status": False,
+            "is_in_stock": False,
+            "description": "Updated",
+        },
+        content_type="application/json",
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["image_url"] == "https://example.com/old.jpg"
+    assert body["status"] is False
+    assert body["is_in_stock"] is False
+
+
+@pytest.mark.django_db
 def test_import_products_strict(monkeypatch, admin_client):
     # Build invalid header workbook
     try:

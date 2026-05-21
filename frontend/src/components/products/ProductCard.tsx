@@ -46,21 +46,20 @@ export function ProductCard({ product }: ProductCardProps) {
             target.src = "https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=400&h=400&fit=crop"
           }}
         />
-        {!product.status && (
+        {!product.status ? (
           <Badge variant="secondary" className="absolute top-2 right-2">
-            {t("outOfStock", language)}
+            {t("inactive", language)}
           </Badge>
-        )}
-        {product.status && (
+        ) : (
           <Badge className="absolute top-2 right-2">
-            {t("inStock", language)}
+            {product.is_in_stock ? t("inStock", language) : t("outOfStock", language)}
           </Badge>
         )}
       </div>
 
       <CardContent className="p-4">
         <h3 className="font-semibold text-lg mb-2 line-clamp-2">
-          {productName}
+          {productName || `Product #${product.id}`}
         </h3>
         {product.description && (
           <p className="text-sm text-muted-foreground line-clamp-2">
@@ -75,7 +74,7 @@ export function ProductCard({ product }: ProductCardProps) {
             data-testid="add-to-cart"
             className="w-full"
             onClick={handleAddToCart}
-            disabled={!product.status || isAdding}
+            disabled={!product.status || !product.is_in_stock || isAdding}
           >
             <ShoppingCart className="mr-2 h-4 w-4" />
             {isAdding ? t("loading", language) : t("addToCart", language)}

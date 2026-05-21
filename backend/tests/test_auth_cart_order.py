@@ -75,12 +75,13 @@ def test_register_login_me_update_cart_order_whatsapp(client):
 
     # WhatsApp helper
     order_id = order_resp.json()["id"]
-    wa = client.get(f"/api/telegram/message-template/?orderId={order_id}")
+    wa = client.get(f"/api/whatsapp/message-template/?orderId={order_id}")
     assert wa.status_code == 200
     payload = wa.json()
     text = payload["text"]
     assert payload["order_number"] == order["order_number"]
-    assert "prices" in text.lower()  # mentions negotiation but not actual prices
+    assert "Номер заказа" in text
+    assert "Товары" in text
     assert "tovuq" in text.lower()
 
 

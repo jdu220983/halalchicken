@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type Locale = 'uz' | 'ru'
+export type Locale = 'uz' | 'ru' | 'en'
 
 type I18nState = {
   locale: Locale

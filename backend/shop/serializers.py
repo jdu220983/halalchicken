@@ -147,6 +147,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "image_file",
             "description",
             "status",
+            "is_in_stock",
             "created_at",
         )
 

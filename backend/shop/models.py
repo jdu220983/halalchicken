@@ -69,6 +69,7 @@ class Product(models.Model):
     image_url = models.URLField(blank=True)
     description = models.TextField(blank=True)
     status = models.BooleanField(default=True, db_index=True)
+    is_in_stock = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
@@ -128,6 +129,7 @@ class Order(models.Model):
         RECEIVED = "Received", "Received"
         CONFIRMED = "Confirmed", "Confirmed"
         SHIPPED = "Shipped", "Shipped"
+        CANCELLED = "Cancelled", "Cancelled"
 
     user = models.ForeignKey("User", on_delete=models.PROTECT, related_name="orders", db_index=True)
     order_number = models.CharField(max_length=20, unique=True, db_index=True)

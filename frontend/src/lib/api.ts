@@ -144,8 +144,8 @@ export async function reorderOrder(id: number) {
   }
 }
 
-export async function telegramTemplate(orderId: number) {
-  const { data } = await api.get('/telegram/message-template/', {
+export async function whatsappTemplate(orderId: number) {
+  const { data } = await api.get('/whatsapp/message-template/', {
     params: { orderId },
   })
   return data as { text: string; order_number: string }
@@ -157,8 +157,10 @@ export async function adminSummary() {
   return data as {
     today_orders: number
     new_orders: number
+    cancelled_orders?: number
     total_products: number
     total_customers: number
+    status_stats?: Record<string, number>
   }
 }
 
@@ -206,14 +208,14 @@ export async function getJob(jobId: string) {
   }
 }
 
-export async function adminTelegramContact(orderId: number) {
-  const { data } = await api.get(`/admin/orders/${orderId}/telegram-contact/`)
+export async function adminWhatsAppContact(orderId: number) {
+  const { data } = await api.get(`/admin/orders/${orderId}/whatsapp-contact/`)
   return data as {
     customer_name: string
     customer_phone: string | null
     order_number: string
     message_text: string
-    telegram_link: string
+    wa_link: string
   }
 }
 

@@ -41,6 +41,25 @@ def test_status_machine_transitions(client):
     bad = client.post(f"/api/orders/{order.id}/status/", {"status": "Received"})
     assert bad.status_code == 400
 
+    # cancelled transition is allowed from active states and becomes terminal
+    cancelled_order = Order.objects.create(user=user, order_number="#20250101-002")
+    OrderItem.objects.create(order=cancelled_order, product=prod, quantity=1)
+    cancel_resp = client.post(
+        f"/api/orders/{cancelled_order.id}/status/",
+        {"status": "Cancelled"},
+    )
+    assert cancel_resp.status_code == 200
+    cancelled_order.refresh_from_db()
+    assert cancelled_order.status == "Cancelled"
+    blocked = client.post(f"/api/orders/{cancelled_order.id}/status/", {"status": "Shipped"})
+    assert blocked.status_code == 400
+
+    summary = client.get("/api/admin/summary/")
+    assert summary.status_code == 200
+    body = summary.json()
+    assert body["cancelled_orders"] >= 1
+    assert body["status_stats"]["Cancelled"] >= 1
+
 
 @pytest.mark.django_db
 def test_session_cart_merge(client):
@@ -271,3 +290,38 @@ def test_role_change_last_superadmin_prevention(client):
     # since self-change check happens first. The important thing is the system
     # maintains at least 1 SUPERADMIN after all operations.)
     assert U.objects.filter(role="SUPERADMIN").count() >= 1
+
+
+@pytest.mark.django_db
+def test_cart_rejects_out_of_stock_products(client):
+    from django.contrib.auth import get_user_model
+
+    from shop.models import Category, Product, Supplier
+
+    U = get_user_model()
+    U.objects.create_user(username="stocky", password="Pass123!")
+    tok = client.post(
+        "/api/auth/login/",
+        {"username": "stocky", "password": "Pass123!"},
+        content_type="application/json",
+    )
+    assert tok.status_code == 200
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {tok.json()['access']}"
+
+    cat = Category.objects.create(name_uz="C", name_ru="C")
+    sup = Supplier.objects.create(name="S")
+    p = Product.objects.create(
+        name_uz="P",
+        name_ru="P",
+        category=cat,
+        supplier=sup,
+        is_in_stock=False,
+    )
+
+    resp = client.post(
+        "/api/cart/items/",
+        {"product_id": p.id, "quantity": 1},
+        content_type="application/json",
+    )
+    assert resp.status_code == 400
+    assert "out of stock" in str(resp.json()).lower()

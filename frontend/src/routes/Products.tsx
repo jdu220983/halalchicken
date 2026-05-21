@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth, useCart } from "@/lib/context"
 import { useToast } from "@/lib/toast"
@@ -17,6 +17,7 @@ export function Products() {
   const [categories, setCategories] = useState<Category[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   // Filter state
   const [selectedCategory, setSelectedCategory] = useState<number>()
@@ -50,28 +51,61 @@ export function Products() {
     fetchFilters()
   }, [language, toast])
 
-  // Fetch products when filters change
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true)
-      try {
-        const params: any = {}
-        if (selectedCategory) params.category = selectedCategory
-        if (selectedSupplier) params.supplier = selectedSupplier
-        if (searchQuery) params.search = searchQuery
-
-        const data = await getProducts(params)
-        setProducts(data.results || data)
-      } catch (error) {
-        console.error("Failed to fetch products:", error)
-        toast({ message: t("errorFetchingProducts", language) || "Failed to load products", type: "error" })
-      } finally {
-        setLoading(false)
+  const getApiErrorMessage = (error: unknown, fallback: string) => {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const response = (error as { response?: { data?: unknown } }).response
+      const data = response?.data as Record<string, unknown> | undefined
+      if (data) {
+        if (typeof data.detail === 'string' && data.detail) return data.detail
+        if (Array.isArray(data.unavailable_items) && data.unavailable_items.length > 0) {
+          return `${data.detail || fallback}: ${(data.unavailable_items as string[]).join(', ')}`
+        }
+        const fieldMessages = Object.entries(data)
+          .filter(([key]) => key !== 'detail')
+          .flatMap(([, value]) => {
+            if (Array.isArray(value)) return value.map(String)
+            if (typeof value === 'string') return [value]
+            return []
+          })
+        if (fieldMessages.length > 0) return fieldMessages.join(' ')
       }
     }
+    if (error instanceof Error && error.message) return error.message
+    return fallback
+  }
 
+  const fetchProducts = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const params: any = {}
+      if (selectedCategory) params.category = selectedCategory
+      if (selectedSupplier) params.supplier = selectedSupplier
+      if (searchQuery) params.search = searchQuery
+
+      const data = await getProducts(params)
+      console.log('[Products] API response:', data)
+      const productsList = data.results || data
+      console.log('[Products] Products list:', productsList)
+      setProducts(Array.isArray(productsList) ? productsList : [])
+    } catch (error) {
+      const message = getApiErrorMessage(error, t("errorFetchingProducts", language) || "Failed to load products")
+      console.error("Failed to fetch products:", error, message)
+      setLoadError(message)
+      toast({ message, type: "error" })
+    } finally {
+      setLoading(false)
+    }
+  }, [language, searchQuery, selectedCategory, selectedSupplier, toast])
+
+  const retryFetchProducts = () => {
     fetchProducts()
-  }, [selectedCategory, selectedSupplier, searchQuery, language, toast])
+  }
+
+  // Fetch products when filters change
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
 
   return (
     <div className="container py-8">
@@ -94,6 +128,21 @@ export function Products() {
       />
 
       <div className="mt-8">
+        {loadError ? (
+          <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+            <div className="mb-2 font-medium text-destructive">
+              {t('errorFetchingProducts', language) || 'Failed to load products'}
+            </div>
+            <div className="flex flex-col gap-3 text-sm text-muted-foreground">
+              <span>{loadError}</span>
+              <div>
+                <Button variant="outline" onClick={retryFetchProducts}>
+                  {language === 'uz' ? 'Qayta urinish' : language === 'en' ? 'Retry' : 'Повторить'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
         <ProductGrid products={products} loading={loading} />
       </div>
 

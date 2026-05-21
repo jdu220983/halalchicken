@@ -8,12 +8,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import type { Language } from '@/lib/i18n'
 
 interface SessionTimeoutDialogProps {
   open: boolean
   onStayLoggedIn: () => void
   remainingSeconds: number
-  language: 'uz' | 'ru'
+  language: Language
 }
 
 export function SessionTimeoutDialog({
@@ -45,17 +46,19 @@ export function SessionTimeoutDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {language === 'uz' ? 'Sessiya tugaydi' : 'Сеанс истекает'}
+            {language === 'uz' ? 'Sessiya tugaydi' : language === 'en' ? 'Session expiring' : 'Сеанс истекает'}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {language === 'uz'
               ? `Siz ${formatTime(seconds)} ichida avtomatik tarzda tizimdan chiqarilasiz. Tizimda qolish uchun pastdagi tugmani bosing.`
-              : `Вы будете автоматически выведены из системы через ${formatTime(seconds)}. Нажмите кнопку ниже, чтобы остаться в системе.`}
+              : language === 'en'
+                ? `You will be signed out automatically in ${formatTime(seconds)}. Use the button below to stay signed in.`
+                : `Вы будете автоматически выведены из системы через ${formatTime(seconds)}. Нажмите кнопку ниже, чтобы остаться в системе.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogAction onClick={onStayLoggedIn}>
-            {language === 'uz' ? 'Tizimda qolish' : 'Остаться в системе'}
+            {language === 'uz' ? 'Tizimda qolish' : language === 'en' ? 'Stay signed in' : 'Остаться в системе'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

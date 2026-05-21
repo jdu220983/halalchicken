@@ -124,6 +124,7 @@ export function AdminOrdersList({ onStatusChange }: AdminOrdersListProps) {
           <option value="Received">{ruMessages.statusReceived}</option>
           <option value="Confirmed">{ruMessages.statusConfirmed}</option>
           <option value="Shipped">{ruMessages.statusShipped}</option>
+          <option value="Cancelled">{ruMessages.statusCancelled}</option>
         </select>
         <Button onClick={handleFilterChange} disabled={loading}>
           {ruMessages.loading}
@@ -153,7 +154,12 @@ export function AdminOrdersList({ onStatusChange }: AdminOrdersListProps) {
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">{order.user.phone || '—'}</td>
                 <td className="px-4 py-3 text-sm">
-                  <Badge variant="outline">{formatStatusRu(order.status)}</Badge>
+                  <Badge
+                    variant="outline"
+                    className={order.status === 'Cancelled' ? 'border-red-200 bg-red-50 text-red-700' : ''}
+                  >
+                    {formatStatusRu(order.status)}
+                  </Badge>
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">{formatDateRu(order.created_at)}</td>
                 <td className="px-4 py-3 text-right">
@@ -180,6 +186,11 @@ export function AdminOrdersList({ onStatusChange }: AdminOrdersListProps) {
                       {order.status === 'Confirmed' && (
                         <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'Shipped')}>
                           {ruMessages.statusShipped}
+                        </DropdownMenuItem>
+                      )}
+                      {order.status !== 'Cancelled' && (
+                        <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'Cancelled')}>
+                          {ruMessages.statusCancelled}
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>

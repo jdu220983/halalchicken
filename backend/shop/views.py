@@ -12,6 +12,7 @@ from rest_framework import mixins
 from rest_framework import permissions as drf_permissions
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -179,7 +180,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.select_related("category", "supplier").all().order_by("id")
     serializer_class = ProductSerializer
     permission_classes = [IsAdminOrReadOnly]
-    filterset_fields = ["status", "category", "supplier"]
+    filterset_fields = ["status", "is_in_stock", "category", "supplier"]
     search_fields = ["name_uz", "name_ru", "description"]
 
 
@@ -248,6 +249,10 @@ class CartViewSet(viewsets.ViewSet):
         serializer = CartItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         product = serializer.validated_data["product"]
+        if not product.status:
+            raise ValidationError({"product_id": "This product is inactive."})
+        if not product.is_in_stock:
+            raise ValidationError({"product_id": "This product is out of stock."})
         quantity = serializer.validated_data.get("quantity") or Decimal("1.00")
         if request.user.is_authenticated:
             cart = self._merge_session_into_user(request, request.user)
@@ -327,38 +332,25 @@ class OrderViewSet(GenericViewSet):
         cart = Cart.objects.filter(user=request.user).prefetch_related("items__product").first()
         if not cart or cart.items.count() == 0:
             return Response({"detail": "Cart is empty"}, status=400)
+        unavailable_items = [
+            item.product.name_uz or item.product.name_ru or f"Product #{item.product_id}"
+            for item in cart.items.all()
+            if not item.product.status or not item.product.is_in_stock
+        ]
+        if unavailable_items:
+            return Response(
+                {
+                    "detail": "Some products in your cart are unavailable.",
+                    "unavailable_items": unavailable_items,
+                },
+                status=400,
+            )
         with transaction.atomic():
             order_number = OrderNumberSequence.next_for_today()
             order = Order.objects.create(user=request.user, order_number=order_number)
             for item in cart.items.all():
                 OrderItem.objects.create(order=order, product=item.product, quantity=item.quantity)
             cart.items.all().delete()
-
-        # Send Telegram notification to admins (async, don't block response)
-        try:
-            from .telegram_service import telegram_service
-
-            # Use Celery task if available, otherwise send synchronously
-            try:
-                from .tasks import send_order_notification_task
-
-                send_order_notification_task.delay(order.id)
-            except Exception:
-                # Fallback to synchronous send if Celery not available
-                # Reload order with relationships for notification
-                order.refresh_from_db()
-                order = (
-                    Order.objects.select_related("user")
-                    .prefetch_related("items__product")
-                    .get(pk=order.id)
-                )
-                telegram_service.send_order_notification(order)
-        except Exception as e:
-            # Log error but don't fail the order creation
-            import logging
-
-            logger = logging.getLogger(__name__)
-            logger.error(f"Failed to send Telegram notification for order {order.id}: {e}")
 
         return Response(OrderSerializer(order).data, status=201)
 
@@ -393,9 +385,10 @@ class OrderViewSet(GenericViewSet):
         order = get_object_or_404(Order, pk=pk)
         new_status = request.data.get("status")
         legal = {
-            Order.Status.RECEIVED: {Order.Status.CONFIRMED},
-            Order.Status.CONFIRMED: {Order.Status.SHIPPED},
-            Order.Status.SHIPPED: set(),
+            Order.Status.RECEIVED: {Order.Status.CONFIRMED, Order.Status.CANCELLED},
+            Order.Status.CONFIRMED: {Order.Status.SHIPPED, Order.Status.CANCELLED},
+            Order.Status.SHIPPED: {Order.Status.CANCELLED},
+            Order.Status.CANCELLED: set(),
         }
         if new_status not in dict(Order.Status.choices):
             return Response({"detail": "Invalid status"}, status=400)
@@ -480,17 +473,23 @@ class AdminSummaryView(APIView):
         from .models import Product as P
         from .models import User as U
 
+        qs = Order.objects.all()
         total_products = P.objects.filter(status=True).count()
         total_customers = U.objects.filter(role__in=["CUSTOMER"]).count()
-        qs = Order.objects.all()
         todays_orders = qs.filter(created_at__date=today).count()
         new_orders = qs.filter(status=Order.Status.RECEIVED).count()
+        cancelled_orders = qs.filter(status=Order.Status.CANCELLED).count()
+        status_stats = {
+            status: qs.filter(status=status).count() for status, _label in Order.Status.choices
+        }
         return Response(
             {
                 "today_orders": todays_orders,
                 "new_orders": new_orders,
+                "cancelled_orders": cancelled_orders,
                 "total_products": total_products,
                 "total_customers": total_customers,
+                "status_stats": status_stats,
             }
         )
 
@@ -561,36 +560,6 @@ class AuthTokenObtainPairView(TokenObtainPairView):
 class AuthTokenRefreshView(TokenRefreshView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth"
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-@never_cache
-def telegram_message_template(request):
-    """Return a prefilled Telegram text (no prices), ready to URL-encode."""
-    order_id = request.query_params.get("orderId")
-    order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=order_id)
-    if order.user_id != request.user.id and getattr(request.user, "role", "") not in {
-        "ADMIN",
-        "SUPERADMIN",
-    }:
-        return Response({"detail": "Forbidden"}, status=403)
-    lines = [
-        "Assalomu alaykum!",
-        f"I placed order {order.order_number}.",
-        "Could you share prices and delivery terms?",
-        "",
-        "Order items:",
-    ]
-    for it in order.items.all():
-        # ABSOLUTE: never include prices
-        lines.append(f"{it.product.name_uz} ({it.quantity})")
-    return Response(
-        {
-            "text": "\n".join(lines),
-            "order_number": order.order_number,
-        }
-    )
 
 
 @api_view(["GET"])
@@ -699,12 +668,8 @@ def whatsapp_message_template(request):
 @api_view(["GET"])
 @permission_classes([IsAdmin])
 @never_cache
-def admin_telegram_contact(request, order_id: int):
-    """
-    Return Telegram contact information for an order's customer (admin-only).
-
-    Returns customer phone, name, a pre-filled message template, and Telegram link.
-    """
+def admin_whatsapp_contact(request, order_id: int):
+    """Return WhatsApp contact information for an order's customer (admin-only)."""
     order = get_object_or_404(
         Order.objects.select_related("user").prefetch_related("items__product"),
         pk=order_id,
@@ -734,15 +699,15 @@ def admin_telegram_contact(request, order_id: int):
 
     # Build WhatsApp link
     # If phone exists, use phone link; otherwise use a generic share link
-    telegram_link = None
+    whatsapp_link = None
     text_encoded = "%0A".join(lines)
     if customer.phone:
         # Clean phone: remove +, spaces, dashes
         clean_phone = customer.phone.replace("+", "").replace(" ", "").replace("-", "")
-        telegram_link = f"https://wa.me/{clean_phone}?text={text_encoded}"
+        whatsapp_link = f"https://wa.me/{clean_phone}?text={text_encoded}"
     else:
         # Fallback to share URL with pre-filled text
-        telegram_link = f"https://wa.me/998916170642?text={text_encoded}"
+        whatsapp_link = f"https://wa.me/998916170642?text={text_encoded}"
 
     return Response(
         {
@@ -750,7 +715,7 @@ def admin_telegram_contact(request, order_id: int):
             "customer_phone": customer.phone or None,
             "order_number": order.order_number,
             "message_text": "\n".join(lines),
-            "telegram_link": telegram_link,
+            "wa_link": whatsapp_link,
         }
     )
 

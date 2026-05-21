@@ -126,7 +126,7 @@ export function Cart() {
       const waLink = generateCustomerWhatsAppUrl(
         orderPayload as any,
         getAdminWhatsAppPhone(),
-        language === 'uz' ? 'uz' : 'ru',
+        language,
         `${formatWeight(totalWeight)} ${t('kg', language)}`,
       )
 

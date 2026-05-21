@@ -45,7 +45,7 @@ export interface CustomerWhatsAppOrder {
   } | null
 }
 
-export type WhatsAppLanguage = 'ru' | 'uz'
+export type WhatsAppLanguage = 'ru' | 'uz' | 'en'
 
 export interface WhatsAppUrlOptions {
   phone?: string | null
@@ -69,11 +69,19 @@ const STATUS_LABELS: Record<WhatsAppLanguage, Record<string, string>> = {
     Received: 'принят',
     Confirmed: 'подтвержден',
     Shipped: 'отправлен',
+    Cancelled: 'отменен',
   },
   uz: {
     Received: 'qabul qilindi',
     Confirmed: 'tasdiqlandi',
     Shipped: 'jo‘natildi',
+    Cancelled: 'bekor qilindi',
+  },
+  en: {
+    Received: 'received',
+    Confirmed: 'confirmed',
+    Shipped: 'shipped',
+    Cancelled: 'cancelled',
   },
 }
 
@@ -83,7 +91,6 @@ export function getAdminWhatsAppPhone(): string | null {
   const envPhone =
     (typeof import.meta !== 'undefined' &&
       (import.meta.env.NEXT_PUBLIC_ADMIN_WHATSAPP ||
-        import.meta.env.NEXT_PUBLIC_WHATSAPP_NUMBER ||
         import.meta.env.VITE_WHATSAPP_NUMBER)) ||
     DEFAULT_ADMIN_WHATSAPP
 
@@ -128,44 +135,66 @@ export function generateCustomerWhatsAppMessage(
   if (!order?.order_number || !order?.items || order.items.length === 0) return null
 
   const customerName =
-    order.customer?.name?.trim() || (language === 'uz' ? 'mijoz' : 'клиент')
-  const customerPhone = order.customer?.phone?.trim() || (language === 'uz' ? 'ko‘rsatilmagan' : 'не указан')
-  const customerAddress = order.customer?.address?.trim() || (language === 'uz' ? 'ko‘rsatilmagan' : 'не указан')
-  const weightLabel = totalWeight?.trim() || (language === 'uz' ? 'noma’lum' : 'Н/Д')
+    order.customer?.name?.trim() || (language === 'uz' ? 'mijoz' : language === 'en' ? 'customer' : 'клиент')
+  const customerPhone =
+    order.customer?.phone?.trim() || (language === 'uz' ? 'ko‘rsatilmagan' : language === 'en' ? 'not provided' : 'не указан')
+  const customerAddress =
+    order.customer?.address?.trim() || (language === 'uz' ? 'ko‘rsatilmagan' : language === 'en' ? 'not provided' : 'не указан')
+  const weightLabel = totalWeight?.trim() || (language === 'uz' ? 'noma’lum' : language === 'en' ? 'N/A' : 'Н/Д')
 
-  const lines: string[] = language === 'uz'
-    ? [
-        'Assalomu alaykum!',
-        '',
-        `Yangi buyurtma #${order.order_number}`,
-        '',
-        `Mijoz: ${customerName}`,
-        `Telefon: ${customerPhone}`,
-        `Manzil: ${customerAddress}`,
-        '',
-        'Mahsulotlar:',
-      ]
-    : [
-        'Здравствуйте!',
-        '',
-        `Новый заказ #${order.order_number}`,
-        '',
-        `Клиент: ${customerName}`,
-        `Телефон: ${customerPhone}`,
-        `Адрес: ${customerAddress}`,
-        '',
-        'Товары:',
-      ]
+  const lines: string[] =
+    language === 'uz'
+      ? [
+          'Assalomu alaykum!',
+          '',
+          `Yangi buyurtma #${order.order_number}`,
+          '',
+          `Mijoz: ${customerName}`,
+          `Telefon: ${customerPhone}`,
+          `Manzil: ${customerAddress}`,
+          '',
+          'Mahsulotlar:',
+        ]
+      : language === 'en'
+        ? [
+            'Hello!',
+            '',
+            `New order #${order.order_number}`,
+            '',
+            `Customer: ${customerName}`,
+            `Phone: ${customerPhone}`,
+            `Address: ${customerAddress}`,
+            '',
+            'Products:',
+          ]
+        : [
+            'Здравствуйте!',
+            '',
+            `Новый заказ #${order.order_number}`,
+            '',
+            `Клиент: ${customerName}`,
+            `Телефон: ${customerPhone}`,
+            `Адрес: ${customerAddress}`,
+            '',
+            'Товары:',
+          ]
 
   order.items.forEach((item) => {
-    const name = item.name_ru || item.name_uz || item.product?.name_ru || item.product?.name_uz || `Товар #${item.product_id ?? item.product?.id ?? ''}`
+    const name =
+      item.name_ru ||
+      item.name_uz ||
+      item.product?.name_ru ||
+      item.product?.name_uz ||
+      (language === 'en'
+        ? `Product #${item.product_id ?? item.product?.id ?? ''}`
+        : `Товар #${item.product_id ?? item.product?.id ?? ''}`)
     const qty = Number(item.quantity ?? 0)
     const qtyLabel = Number.isFinite(qty) && qty > 0 ? String(qty) : String(item.quantity ?? '')
     lines.push(`- ${name} ×${qtyLabel}`)
   })
 
-  lines.push('', `${language === 'uz' ? 'Umumiy vazn' : 'Общий вес'}: ${weightLabel}`, '')
-  lines.push(language === 'uz' ? 'Rahmat!' : 'Спасибо!')
+  lines.push('', `${language === 'uz' ? 'Umumiy vazn' : language === 'en' ? 'Total weight' : 'Общий вес'}: ${weightLabel}`, '')
+  lines.push(language === 'uz' ? 'Rahmat!' : language === 'en' ? 'Thank you!' : 'Спасибо!')
 
   return lines.join('\n')
 }
@@ -193,6 +222,42 @@ export function buildAdminCustomerWhatsAppMessage(
   const customerName =
     order.user?.fio?.trim() || order.user?.username?.trim() || (language === 'uz' ? 'mijoz' : 'клиент')
 
+  if (order.status === 'Cancelled') {
+    if (language === 'uz') {
+      return [
+        `Assalomu alaykum, ${customerName}!`,
+        '',
+        `Afsuski, sizning #${order.order_number} buyurtmangiz bekor qilindi.`,
+        '',
+        'Agar savollaringiz bo‘lsa, iltimos biz bilan bog‘laning.',
+        '',
+        'Rahmat!',
+      ].join('\n')
+    }
+
+    if (language === 'en') {
+      return [
+        `Hello, ${customerName}!`,
+        '',
+        `Unfortunately, your order #${order.order_number} was cancelled.`,
+        '',
+        'If you have any questions, please contact us.',
+        '',
+        'Thank you!',
+      ].join('\n')
+    }
+
+    return [
+      `Здравствуйте, ${customerName}!`,
+      '',
+      `К сожалению, ваш заказ #${order.order_number} был отменен.`,
+      '',
+      'Если у вас есть вопросы, пожалуйста свяжитесь с нами.',
+      '',
+      'Спасибо!',
+    ].join('\n')
+  }
+
   const statusLabel = STATUS_LABELS[language][order.status] || order.status
 
   if (language === 'uz') {
@@ -202,6 +267,16 @@ export function buildAdminCustomerWhatsAppMessage(
       `Buyurtmangiz #${order.order_number} ${statusLabel}.`,
       '',
       'Buyurtmangiz uchun rahmat!',
+    ].join('\n')
+  }
+
+  if (language === 'en') {
+    return [
+      `Hello, ${customerName}!`,
+      '',
+      `Your order #${order.order_number} was ${statusLabel}.`,
+      '',
+      'Thank you for your order!',
     ].join('\n')
   }
 
@@ -233,6 +308,20 @@ export function generateAdminWhatsAppUrl(
   language: WhatsAppLanguage = 'ru',
 ): string | null {
   return buildAdminCustomerWhatsAppUrl(order, language)
+}
+
+export function generateAdminCancellationWhatsAppUrl(
+  order: AdminWhatsAppOrder,
+  language: WhatsAppLanguage = 'ru',
+): string | null {
+  if (!order?.items || order.items.length === 0) return null
+
+  const message = buildAdminCustomerWhatsAppMessage({ ...order, status: 'Cancelled' }, language)
+  const phone = order.user?.phone || null
+
+  if (!message || !phone) return null
+
+  return generateWhatsAppUrl({ phone, message })
 }
 
 /**

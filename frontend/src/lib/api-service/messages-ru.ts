@@ -42,6 +42,8 @@ export const ruMessages = {
   statusReceived: 'Получен',
   statusConfirmed: 'Подтвержден',
   statusShipped: 'Отправлен',
+  statusCancelled: 'Отменено',
+  cancelledOrders: 'Отмененные заказы',
 
   // Table headers
   orderNumber: 'Номер заказа',
@@ -118,6 +120,7 @@ export function formatStatusRu(status: string): string {
     'Received': ruMessages.statusReceived,
     'Confirmed': ruMessages.statusConfirmed,
     'Shipped': ruMessages.statusShipped,
+    'Cancelled': ruMessages.statusCancelled,
   }
   return statusMap[status] || status
 }

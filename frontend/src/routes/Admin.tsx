@@ -40,7 +40,7 @@ import {
   getUsers,
   updateUserRole,
 } from '@/lib/api'
-import { generateAdminWhatsAppUrl } from '@/lib/whatsapp'
+import { generateAdminCancellationWhatsAppUrl, generateAdminWhatsAppUrl } from '@/lib/whatsapp'
 import {
   Dialog,
   DialogContent,
@@ -55,8 +55,10 @@ import { ConfirmDialog } from '@/components/admin/shared/ConfirmDialog'
 interface AdminStats {
   today_orders: number
   new_orders: number
+  cancelled_orders?: number
   total_products: number
   total_customers: number
+  status_stats?: Record<string, number>
 }
 
 interface AsyncJob {
@@ -79,7 +81,7 @@ interface AdminOrder extends Omit<Order, 'user'> {
   }
 }
 
-type AdminStatusFilter = OrderStatus | 'cancelled' | 'ALL'
+type AdminStatusFilter = OrderStatus | 'ALL'
 
 function WhatsAppIcon() {
   return (
@@ -278,9 +280,20 @@ export function Admin() {
 
   const handleStatusChange = async (orderId: number, newStatus: string) => {
     try {
+      const currentOrder = orders.find((order) => order.id === orderId)
       await setOrderStatus(orderId, newStatus)
       await fetchOrders(ordersPage)
       toast({ message: t('orderStatusUpdated', language) || 'Order status updated successfully', type: 'success' })
+
+      if (newStatus === 'Cancelled' && currentOrder) {
+        const whatsappUrl = generateAdminCancellationWhatsAppUrl(
+          { ...currentOrder, status: 'Cancelled' },
+          language,
+        )
+        if (whatsappUrl) {
+          window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
+        }
+      }
     } catch (error: any) {
       console.error('Failed to update status:', error)
       const errorMsg = error.response?.data?.detail || t('errorUpdatingOrderStatus', language) || 'Failed to update order status'
@@ -376,15 +389,17 @@ export function Admin() {
     Received: 'bg-blue-100 text-blue-800 border-blue-200',
     Confirmed: 'bg-purple-100 text-purple-800 border-purple-200',
     Shipped: 'bg-green-100 text-green-800 border-green-200',
+    Cancelled: 'bg-red-100 text-red-800 border-red-200',
   }
 
   const statusTransitions: Record<OrderStatus, OrderStatus[]> = {
-    Received: ['Confirmed'],
-    Confirmed: ['Shipped'],
-    Shipped: [],
+    Received: ['Confirmed', 'Cancelled'],
+    Confirmed: ['Shipped', 'Cancelled'],
+    Shipped: ['Cancelled'],
+    Cancelled: [],
   }
-  const statusTimeline: OrderStatus[] = ['Received', 'Confirmed', 'Shipped']
-  const statusFilterOptions: AdminStatusFilter[] = ['Received', 'Confirmed', 'Shipped', 'cancelled']
+  const statusTimeline: OrderStatus[] = ['Received', 'Confirmed', 'Shipped', 'Cancelled']
+  const statusFilterOptions: AdminStatusFilter[] = ['Received', 'Confirmed', 'Shipped', 'Cancelled']
 
   const filteredOrders = orders
   const availableRoles = ['CUSTOMER', 'ADMIN', 'SUPERADMIN']
@@ -459,7 +474,7 @@ export function Admin() {
       return
     }
 
-    const whatsappUrl = generateAdminWhatsAppUrl(order, language === 'uz' ? 'uz' : 'ru')
+    const whatsappUrl = generateAdminWhatsAppUrl(order, language)
 
     if (!whatsappUrl) {
       toast({
@@ -480,11 +495,14 @@ export function Admin() {
     setProductSubmitLoading(true)
     try {
       const formData = new FormData()
+      const categoryId = typeof productForm.category === 'object' ? productForm.category?.id : productForm.category
+      const supplierId = typeof productForm.supplier === 'object' ? productForm.supplier?.id : productForm.supplier
 
-      formData.append('category_id', String(productForm.category))
-      formData.append('supplier_id', String(productForm.supplier))
+      formData.append('category_id', String(categoryId ?? ''))
+      formData.append('supplier_id', String(supplierId ?? ''))
       formData.append('description', productForm.description || '')
       formData.append('status', String(productForm.status ?? true))
+      formData.append('is_in_stock', String(productForm.is_in_stock ?? true))
 
       if (productImageFile) {
         formData.append('image_file', productImageFile)
@@ -498,7 +516,8 @@ export function Admin() {
       toast({ message: t('productCreated', language) || 'Product created successfully', type: 'success' })
     } catch (error) {
       console.error('Error creating product:', error)
-      toast({ message: t('errorCreatingProduct', language) || 'Failed to create product', type: 'error' })
+      const message = getProductErrorMessage(error, t('errorCreatingProduct', language) || 'Failed to create product')
+      toast({ message, type: 'error' })
       throw error
     } finally {
       setProductSubmitLoading(false)
@@ -511,11 +530,14 @@ export function Admin() {
     setProductSubmitLoading(true)
     try {
       const formData = new FormData()
+      const categoryId = typeof productForm.category === 'object' ? productForm.category?.id : productForm.category
+      const supplierId = typeof productForm.supplier === 'object' ? productForm.supplier?.id : productForm.supplier
 
-      formData.append('category_id', String(productForm.category))
-      formData.append('supplier_id', String(productForm.supplier))
+      formData.append('category_id', String(categoryId ?? ''))
+      formData.append('supplier_id', String(supplierId ?? ''))
       formData.append('description', productForm.description || '')
       formData.append('status', String(productForm.status ?? true))
+      formData.append('is_in_stock', String(productForm.is_in_stock ?? true))
 
       if (productImageFile) {
         formData.append('image_file', productImageFile)
@@ -530,7 +552,8 @@ export function Admin() {
       toast({ message: t('productUpdated', language) || 'Product updated successfully', type: 'success' })
     } catch (error) {
       console.error('Error updating product:', error)
-      toast({ message: t('errorUpdatingProduct', language) || 'Failed to update product', type: 'error' })
+      const message = getProductErrorMessage(error, t('errorUpdatingProduct', language) || 'Failed to update product')
+      toast({ message, type: 'error' })
       throw error
     } finally {
       setProductSubmitLoading(false)
@@ -541,10 +564,11 @@ export function Admin() {
     if (product) {
       setEditingProduct(product)
       setProductForm({
-        category: product.category,
-        supplier: product.supplier,
+        category: typeof product.category === 'object' ? product.category.id : product.category,
+        supplier: typeof product.supplier === 'object' ? product.supplier.id : product.supplier,
         description: product.description,
         status: product.status,
+        is_in_stock: product.is_in_stock ?? true,
       })
       setProductImageFile(null)
       setProductImagePreview(null)
@@ -555,11 +579,35 @@ export function Admin() {
         supplier: suppliers[0]?.id || 0,
         description: '',
         status: true,
+        is_in_stock: true,
       })
       setProductImageFile(null)
       setProductImagePreview(null)
     }
     setProductDialogOpen(true)
+  }
+
+  const getProductErrorMessage = (error: unknown, fallback: string) => {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const response = (error as { response?: { data?: unknown } }).response
+      const data = response?.data as Record<string, unknown> | undefined
+      if (data) {
+        if (typeof data.detail === 'string' && data.detail) return data.detail
+        if (Array.isArray(data.unavailable_items) && data.unavailable_items.length > 0) {
+          return `${data.detail || fallback}: ${(data.unavailable_items as string[]).join(', ')}`
+        }
+        const parts = Object.entries(data)
+          .filter(([key]) => key !== 'detail')
+          .flatMap(([, value]) => {
+            if (Array.isArray(value)) return value.map(String)
+            if (typeof value === 'string') return [value]
+            return []
+          })
+        if (parts.length > 0) return parts.join(' ')
+      }
+    }
+    if (error instanceof Error && error.message) return error.message
+    return fallback
   }
 
   const handleSubmitProduct = async () => {
@@ -814,7 +862,7 @@ export function Admin() {
       <h1 className="mb-8 text-3xl font-bold">{t('adminDashboard', language)}</h1>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">{t('todayOrders', language)}</CardTitle>
@@ -832,6 +880,16 @@ export function Admin() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.new_orders || 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">{t('cancelledOrders', language)}</CardTitle>
+            <Package className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">{stats?.cancelled_orders || 0}</div>
           </CardContent>
         </Card>
 
@@ -1152,9 +1210,14 @@ export function Admin() {
                           {product.description && (
                             <div className="mt-1 text-sm text-muted-foreground">{product.description}</div>
                           )}
-                          <Badge variant={product.status ? 'default' : 'secondary'} className="mt-2">
-                            {product.status ? t('inStock', language) : t('outOfStock', language)}
-                          </Badge>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <Badge variant={product.status ? 'default' : 'secondary'}>
+                              {product.status ? t('active', language) : t('inactive', language)}
+                            </Badge>
+                            <Badge variant={product.is_in_stock ? 'default' : 'secondary'}>
+                              {product.is_in_stock ? t('inStock', language) : t('outOfStock', language)}
+                            </Badge>
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm" onClick={() => handleOpenProductDialog(product)}>
@@ -1304,6 +1367,16 @@ export function Admin() {
                     className="w-4 h-4 border-gray-300 rounded"
                   />
                   <Label htmlFor="status" className="cursor-pointer">{t('status', language)}: {productForm.status ? t('active', language) : t('inactive', language)}</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="is_in_stock"
+                    checked={productForm.is_in_stock ?? true}
+                    onChange={(e) => setProductForm({ ...productForm, is_in_stock: e.target.checked })}
+                    className="w-4 h-4 border-gray-300 rounded"
+                  />
+                  <Label htmlFor="is_in_stock" className="cursor-pointer">{t('availability', language)}: {productForm.is_in_stock ?? true ? t('inStock', language) : t('outOfStock', language)}</Label>
                 </div>
               </div>
               <DialogFooter>

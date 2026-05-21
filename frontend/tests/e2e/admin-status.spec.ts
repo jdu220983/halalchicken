@@ -40,6 +40,7 @@ test('admin can change order status', async ({ page }) => {
     headers: { Authorization: `Bearer ${customerTok.access}` },
   })
   expect(createOrderRes.ok()).toBeTruthy()
+  const createdOrder = await createOrderRes.json()
 
   // Seed command creates admin/admin user in CI.
   const login = await page.request.post(`${API}/api/auth/login/`, {
@@ -64,5 +65,9 @@ test('admin can change order status', async ({ page }) => {
   await page.waitForFunction(() => !document.querySelector('a[href="/login"]'))
   await page.goto('/admin')
 
-  const statusRes = await page.request.post(`${API}/api/orders/${createOrderRes.json().then ? '' : ''}`)
+  const statusRes = await page.request.post(`${API}/api/orders/${createdOrder.id}/status/`, {
+    headers: { Authorization: `Bearer ${tok.access}` },
+    data: { status: 'Confirmed' },
+  })
+  expect(statusRes.ok()).toBeTruthy()
 })
