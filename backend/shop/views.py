@@ -600,7 +600,7 @@ def whatsapp_message_template(request):
         "Товары:",
     ]
     for it in order.items.all():
-        prod_name = it.product.name_ru or it.product.name_uz or f"Товар #{it.product_id}"
+        prod_name = it.product.name_uz or it.product.name_ru or f"Товар #{it.product_id}"
         # Use simple multiplication sign
         quantity = int(it.quantity) if float(it.quantity).is_integer() else it.quantity
         lines.append(f"- {prod_name} ×{quantity}")
@@ -660,6 +660,7 @@ def whatsapp_message_template(request):
             "text": message_text,
             "encoded_text": encoded,
             "wa_link": wa_link,
+            "order_number": order.order_number,
             "order": payload_order,
         }
     )
