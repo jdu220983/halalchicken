@@ -19,8 +19,8 @@ const statusColors: Record<OrderStatus, string> = {
 }
 
 export function Orders() {
-  const { language, user } = useAuth()
-  const { orders, isLoading, reorder, refreshOrders } = useOrders()
+  const { language, user, isLoading } = useAuth()
+  const { orders, isLoading: ordersLoading, reorder, refreshOrders } = useOrders()
   const { fetchCart } = useCart()
   const navigate = useNavigate()
   const toast = useToast()
@@ -28,6 +28,9 @@ export function Orders() {
   const [reorderingId, setReorderingId] = useState<number | null>(null)
 
   useEffect(() => {
+    if (isLoading) {
+      return
+    }
     if (!user) {
       navigate("/login")
     } else if (user.role !== "CUSTOMER") {
@@ -35,7 +38,7 @@ export function Orders() {
     } else {
       refreshOrders()
     }
-  }, [user, navigate, refreshOrders])
+  }, [user, isLoading, navigate, refreshOrders])
 
   const handleReorder = async (orderId: number) => {
     setReorderingId(orderId)
@@ -94,7 +97,7 @@ export function Orders() {
     return null
   }
 
-  if (isLoading) {
+  if (ordersLoading) {
     return (
       <div className="container py-8">
         <h1 className="text-3xl font-bold mb-6">{t("orderHistory", language)}</h1>

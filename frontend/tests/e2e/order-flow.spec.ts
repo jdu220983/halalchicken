@@ -48,12 +48,14 @@ test('register, add to cart, place order, success whatsapp CTA', async ({
   const productsRes = await page.request.get(`${API}/api/products/`)
   expect(productsRes.ok()).toBeTruthy()
   const productsData = await productsRes.json()
-  const firstProductId = productsData?.results?.[0]?.id
-  expect(firstProductId).toBeTruthy()
+  const availableProduct = productsData?.results?.find(
+    (product: { status?: boolean; is_in_stock?: boolean }) => product.status && product.is_in_stock,
+  )
+  expect(availableProduct?.id).toBeTruthy()
 
   const addCartRes = await page.request.post(`${API}/api/cart/items/`, {
     headers: { Authorization: `Bearer ${tok.access}` },
-    data: { product_id: firstProductId, quantity: 1 },
+    data: { product_id: availableProduct.id, quantity: 1 },
   })
   expect(addCartRes.ok()).toBeTruthy()
 
@@ -63,7 +65,7 @@ test('register, add to cart, place order, success whatsapp CTA', async ({
   expect(orderRes.ok()).toBeTruthy()
   const orderData = await orderRes.json()
 
-  const firstProduct = productsData.results[0]
+  const firstProduct = availableProduct
   const orderPayload = {
     id: orderData.id,
     order_number: orderData.order_number,

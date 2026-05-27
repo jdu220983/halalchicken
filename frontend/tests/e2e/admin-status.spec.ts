@@ -5,6 +5,13 @@ test('admin can change order status', async ({ page }) => {
   const username = `adminflow${Date.now()}@e2e.test`
   const password = 'Passw0rd!'
 
+  const adminCandidates = [
+    { username: 'admin', password: 'admin123' },
+    { username: 'admin', password: 'admin' },
+    { username: 'superadmin', password: 'admin123' },
+    { username: 'Superadmin', password: 'admin123' },
+  ]
+
   // Create a customer order so admin page has status content.
   const reg = await page.request.post(`${API}/api/auth/register/`, {
     data: {
@@ -27,12 +34,14 @@ test('admin can change order status', async ({ page }) => {
   const productsRes = await page.request.get(`${API}/api/products/`)
   expect(productsRes.ok()).toBeTruthy()
   const productsData = await productsRes.json()
-  const firstProductId = productsData?.results?.[0]?.id
-  expect(firstProductId).toBeTruthy()
+  const availableProduct = productsData?.results?.find(
+    (product: { status?: boolean; is_in_stock?: boolean }) => product.status && product.is_in_stock,
+  )
+  expect(availableProduct?.id).toBeTruthy()
 
   const addCartRes = await page.request.post(`${API}/api/cart/items/`, {
     headers: { Authorization: `Bearer ${customerTok.access}` },
-    data: { product_id: firstProductId, quantity: 1 },
+    data: { product_id: availableProduct.id, quantity: 1 },
   })
   expect(addCartRes.ok()).toBeTruthy()
 
@@ -42,12 +51,20 @@ test('admin can change order status', async ({ page }) => {
   expect(createOrderRes.ok()).toBeTruthy()
   const createdOrder = await createOrderRes.json()
 
-  // Seed command creates admin/admin user in CI.
-  const login = await page.request.post(`${API}/api/auth/login/`, {
-    data: { username: 'admin', password: 'admin' },
-  })
-  if (!login.ok()) test.skip()
-  const tok = await login.json()
+  let tok: { access: string; refresh: string } | null = null
+  for (const candidate of adminCandidates) {
+    const login = await page.request.post(`${API}/api/auth/login/`, {
+      data: candidate,
+    })
+    if (login.ok()) {
+      tok = await login.json()
+      break
+    }
+  }
+  expect(tok).not.toBeNull()
+  if (!tok) {
+    throw new Error('No seeded admin account could be authenticated')
+  }
 
   const meRes = await page.request.get(`${API}/api/auth/me/`, {
     headers: { Authorization: `Bearer ${tok.access}` },
